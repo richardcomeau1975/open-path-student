@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  --bg-page: #fdfbf7;
+  --bg-card: #ffffff;
+  --border-card: #E8E4DA;
+  --text-primary: #1a1a1a;
+  --text-muted: #6B6B6B;
+  --accent-gold: #8B6914;
+  --btn-normal: #9B8E82;
+  --btn-hover: #A0785A;
+  --status-green: #4A7C59;
+  --status-amber: #C4972A;
+  --radius: 8px;
+  --radius-lg: 12px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body), "Inter", sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-display), "Lora", serif;
+}
+
+/* Clerk SignIn overrides */
+.cl-card {
+  box-shadow: none !important;
+  border: 1px solid var(--border-card) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+.cl-formButtonPrimary {
+  background-color: var(--btn-normal) !important;
+}
+
+.cl-formButtonPrimary:hover {
+  background-color: var(--btn-hover) !important;
+}
+
+.cl-footerAction {
+  display: none !important;
+}
