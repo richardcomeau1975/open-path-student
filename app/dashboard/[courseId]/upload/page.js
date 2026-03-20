@@ -17,6 +17,9 @@ export default function UploadPage() {
   const [weekNumber, setWeekNumber] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState(null);
+  const [topicId, setTopicId] = useState(null);
+  const [generating, setGenerating] = useState(false);
+  const [generated, setGenerated] = useState(false);
 
   const handleSubmit = async () => {
     if (!topicName.trim()) {
@@ -57,11 +60,34 @@ export default function UploadPage() {
       }
 
       const data = await res.json();
-      router.push(`/dashboard/${courseId}/${data.topic.id}`);
+      setTopicId(data.topic.id);
     } catch (err) {
       setError(err.message);
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleGenerate = async () => {
+    if (!topicId) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API_URL}/api/topics/${topicId}/generate`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setGenerated(true);
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || "Failed to start generation");
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -88,110 +114,207 @@ export default function UploadPage() {
           maxWidth: "640px",
         }}
       >
-        <div style={{ marginBottom: "24px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: 500,
-              marginBottom: "6px",
-              color: "var(--text-primary)",
-            }}
-          >
-            Topic Name
-          </label>
-          <input
-            type="text"
-            value={topicName}
-            onChange={(e) => setTopicName(e.target.value)}
-            placeholder="e.g. Intelligence — What IQ Actually Measures"
-            style={{
-              width: "100%",
-              padding: "10px 14px",
-              border: "1px solid var(--border-card)",
-              borderRadius: "var(--radius)",
-              fontSize: "14px",
-              fontFamily: "var(--font-body), 'Inter', sans-serif",
-              outline: "none",
-            }}
-          />
-        </div>
+        {!topicId ? (
+          <>
+            <div style={{ marginBottom: "24px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  marginBottom: "6px",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Topic Name
+              </label>
+              <input
+                type="text"
+                value={topicName}
+                onChange={(e) => setTopicName(e.target.value)}
+                placeholder="e.g. Intelligence — What IQ Actually Measures"
+                style={{
+                  width: "100%",
+                  padding: "10px 14px",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: "var(--radius)",
+                  fontSize: "14px",
+                  fontFamily: "var(--font-body), 'Inter', sans-serif",
+                  outline: "none",
+                }}
+              />
+            </div>
 
-        <div style={{ marginBottom: "24px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "14px",
-              fontWeight: 500,
-              marginBottom: "6px",
-              color: "var(--text-primary)",
-            }}
-          >
-            Week Number{" "}
-            <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
-              (optional)
-            </span>
-          </label>
-          <input
-            type="number"
-            value={weekNumber}
-            onChange={(e) => setWeekNumber(e.target.value)}
-            placeholder="e.g. 7"
-            style={{
-              width: "120px",
-              padding: "10px 14px",
-              border: "1px solid var(--border-card)",
-              borderRadius: "var(--radius)",
-              fontSize: "14px",
-              fontFamily: "var(--font-body), 'Inter', sans-serif",
-              outline: "none",
-            }}
-          />
-        </div>
+            <div style={{ marginBottom: "24px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  marginBottom: "6px",
+                  color: "var(--text-primary)",
+                }}
+              >
+                Week Number{" "}
+                <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+                  (optional)
+                </span>
+              </label>
+              <input
+                type="number"
+                value={weekNumber}
+                onChange={(e) => setWeekNumber(e.target.value)}
+                placeholder="e.g. 7"
+                style={{
+                  width: "120px",
+                  padding: "10px 14px",
+                  border: "1px solid var(--border-card)",
+                  borderRadius: "var(--radius)",
+                  fontSize: "14px",
+                  fontFamily: "var(--font-body), 'Inter', sans-serif",
+                  outline: "none",
+                }}
+              />
+            </div>
 
-        <UploadZone files={files} setFiles={setFiles} />
+            <UploadZone files={files} setFiles={setFiles} />
 
-        {error && (
-          <p
-            style={{
-              color: "var(--status-amber)",
-              fontSize: "14px",
-              marginTop: "16px",
-            }}
-          >
-            {error}
-          </p>
+            {error && (
+              <p
+                style={{
+                  color: "var(--status-amber)",
+                  fontSize: "14px",
+                  marginTop: "16px",
+                }}
+              >
+                {error}
+              </p>
+            )}
+
+            <button
+              onClick={handleSubmit}
+              disabled={uploading}
+              style={{
+                marginTop: "24px",
+                width: "100%",
+                backgroundColor: uploading
+                  ? "var(--text-muted)"
+                  : "var(--btn-normal)",
+                color: "#ffffff",
+                border: "none",
+                borderRadius: "var(--radius)",
+                padding: "12px 24px",
+                fontFamily: "var(--font-body), 'Inter', sans-serif",
+                fontWeight: 500,
+                fontSize: "16px",
+                cursor: uploading ? "not-allowed" : "pointer",
+              }}
+              onMouseOver={(e) => {
+                if (!uploading)
+                  e.target.style.backgroundColor = "var(--btn-hover)";
+              }}
+              onMouseOut={(e) => {
+                if (!uploading)
+                  e.target.style.backgroundColor = "var(--btn-normal)";
+              }}
+            >
+              {uploading ? "Uploading..." : "Upload Files"}
+            </button>
+          </>
+        ) : (
+          <div style={{ textAlign: "center" }}>
+            <div
+              style={{
+                marginBottom: "20px",
+                padding: "16px 24px",
+                background: "#F0F7F2",
+                borderRadius: "var(--radius-lg)",
+                color: "#4A7C59",
+                fontFamily: "var(--font-body), 'Inter', sans-serif",
+                fontSize: "15px",
+              }}
+            >
+              Files uploaded successfully!
+            </div>
+
+            {!generated ? (
+              <>
+                <button
+                  onClick={handleGenerate}
+                  disabled={generating}
+                  style={{
+                    marginTop: "8px",
+                    padding: "12px 32px",
+                    background: generating
+                      ? "var(--text-muted)"
+                      : "var(--btn-normal)",
+                    color: "#fff",
+                    border: "none",
+                    borderRadius: "var(--radius)",
+                    cursor: generating ? "not-allowed" : "pointer",
+                    fontFamily: "var(--font-body), 'Inter', sans-serif",
+                    fontWeight: 500,
+                    fontSize: "16px",
+                  }}
+                  onMouseOver={(e) => {
+                    if (!generating)
+                      e.target.style.backgroundColor = "var(--btn-hover)";
+                  }}
+                  onMouseOut={(e) => {
+                    if (!generating)
+                      e.target.style.backgroundColor = "var(--btn-normal)";
+                  }}
+                >
+                  {generating ? "Starting..." : "Generate My Materials"}
+                </button>
+
+                {error && (
+                  <p
+                    style={{
+                      color: "var(--status-amber)",
+                      fontSize: "14px",
+                      marginTop: "16px",
+                    }}
+                  >
+                    {error}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div
+                style={{
+                  marginTop: "8px",
+                  padding: "16px 24px",
+                  background: "#F0F7F2",
+                  borderRadius: "var(--radius-lg)",
+                  color: "#4A7C59",
+                  fontFamily: "var(--font-body), 'Inter', sans-serif",
+                  fontSize: "15px",
+                }}
+              >
+                Your materials are being prepared — this takes about 10
+                minutes. Check back soon!
+              </div>
+            )}
+
+            <button
+              onClick={() => router.push(`/dashboard/${courseId}`)}
+              style={{
+                marginTop: "20px",
+                padding: "10px 24px",
+                background: "transparent",
+                color: "var(--text-muted)",
+                border: "1px solid var(--border-card)",
+                borderRadius: "var(--radius)",
+                cursor: "pointer",
+                fontFamily: "var(--font-body), 'Inter', sans-serif",
+                fontSize: "14px",
+              }}
+            >
+              Back to Topics
+            </button>
+          </div>
         )}
-
-        <button
-          onClick={handleSubmit}
-          disabled={uploading}
-          style={{
-            marginTop: "24px",
-            width: "100%",
-            backgroundColor: uploading
-              ? "var(--text-muted)"
-              : "var(--btn-normal)",
-            color: "#ffffff",
-            border: "none",
-            borderRadius: "var(--radius)",
-            padding: "12px 24px",
-            fontFamily: "var(--font-body), 'Inter', sans-serif",
-            fontWeight: 500,
-            fontSize: "16px",
-            cursor: uploading ? "not-allowed" : "pointer",
-          }}
-          onMouseOver={(e) => {
-            if (!uploading)
-              e.target.style.backgroundColor = "var(--btn-hover)";
-          }}
-          onMouseOut={(e) => {
-            if (!uploading)
-              e.target.style.backgroundColor = "var(--btn-normal)";
-          }}
-        >
-          {uploading ? "Uploading..." : "Generate"}
-        </button>
       </div>
     </div>
   );

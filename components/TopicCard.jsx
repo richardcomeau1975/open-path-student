@@ -2,8 +2,15 @@
 
 import { useRouter } from "next/navigation";
 
+const STATUS_BADGE = {
+  completed: { label: "Ready", bg: "#4A7C59", color: "#fff" },
+  generating: { label: "Generating...", bg: "#C4972A", color: "#fff" },
+  failed: { label: "Failed", bg: "#C44A2A", color: "#fff" },
+};
+
 export default function TopicCard({ topic, courseId }) {
   const router = useRouter();
+  const badge = STATUS_BADGE[topic.generation_status];
 
   return (
     <div
@@ -45,17 +52,35 @@ export default function TopicCard({ topic, courseId }) {
           Current
         </span>
       )}
-      <h3
-        style={{
-          fontFamily: "var(--font-display), 'Lora', serif",
-          fontWeight: 500,
-          fontSize: "18px",
-          color: "var(--text-primary)",
-          paddingRight: topic.is_current ? "70px" : "0",
-        }}
-      >
-        {topic.name}
-      </h3>
+      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        <h3
+          style={{
+            fontFamily: "var(--font-display), 'Lora', serif",
+            fontWeight: 500,
+            fontSize: "18px",
+            color: "var(--text-primary)",
+            paddingRight: topic.is_current ? "70px" : "0",
+          }}
+        >
+          {topic.name}
+        </h3>
+        {badge && (
+          <span
+            style={{
+              display: "inline-block",
+              padding: "2px 10px",
+              borderRadius: "12px",
+              fontSize: "12px",
+              fontWeight: 500,
+              color: badge.color,
+              background: badge.bg,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {badge.label}
+          </span>
+        )}
+      </div>
       {topic.week_number && (
         <p
           style={{

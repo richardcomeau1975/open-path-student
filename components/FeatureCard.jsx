@@ -8,6 +8,9 @@ export default function FeatureCard({ feature }) {
       style={{
         backgroundColor: "var(--bg-card)",
         border: "1px solid var(--border-card)",
+        borderLeft: isAvailable
+          ? "3px solid #4A7C59"
+          : "1px solid var(--border-card)",
         borderRadius: "var(--radius-lg)",
         padding: "24px",
         opacity: isAvailable ? 1 : 0.55,
@@ -63,17 +66,16 @@ export default function FeatureCard({ feature }) {
       >
         {feature.description}
       </h3>
-      {!isAvailable && (
-        <p
-          style={{
-            fontSize: "13px",
-            color: "var(--text-muted)",
-            fontStyle: "italic",
-          }}
-        >
-          Not yet available
-        </p>
-      )}
+      <p
+        style={{
+          fontSize: "13px",
+          color: isAvailable ? "#4A7C59" : "var(--text-muted)",
+          fontStyle: isAvailable ? "normal" : "italic",
+          fontWeight: isAvailable ? 500 : 400,
+        }}
+      >
+        {isAvailable ? "Ready" : "Not yet available"}
+      </p>
     </div>
   );
 }
