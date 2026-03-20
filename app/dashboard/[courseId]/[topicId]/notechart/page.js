@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 
@@ -16,6 +16,12 @@ export default function NoteChartPage() {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const saveTimerRef = useRef(null);
+  const questionsRef = useRef(questions);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    questionsRef.current = questions;
+  }, [questions]);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -40,43 +46,40 @@ export default function NoteChartPage() {
     fetchQuestions();
   }, [topicId, getToken]);
 
-  const saveAnswers = useCallback(
-    async (updatedQuestions) => {
-      setSaving(true);
-      try {
-        const token = await getToken();
-        await fetch(`${API_URL}/api/topics/${topicId}/notechart/save`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            answers: updatedQuestions.map((q) => ({
-              section: q.section,
-              question: q.question,
-              answer: q.answer || "",
-            })),
-          }),
-        });
-        setLastSaved(new Date());
-      } catch (err) {
-        console.error("Failed to save answers:", err);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [topicId, getToken]
-  );
+  const saveAnswers = async () => {
+    const current = questionsRef.current;
+    setSaving(true);
+    try {
+      const token = await getToken();
+      await fetch(`${API_URL}/api/topics/${topicId}/notechart/save`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          answers: current.map((q) => ({
+            section: q.section,
+            question: q.question,
+            answer: q.answer || "",
+          })),
+        }),
+      });
+      setLastSaved(new Date());
+    } catch (err) {
+      console.error("Failed to save answers:", err);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleAnswerChange = (index, value) => {
     const updated = [...questions];
     updated[index] = { ...updated[index], answer: value };
     setQuestions(updated);
 
-    // Debounced auto-save: 2 seconds after last keystroke
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => saveAnswers(updated), 2000);
+    saveTimerRef.current = setTimeout(() => saveAnswers(), 2000);
   };
 
   // Group questions by section
