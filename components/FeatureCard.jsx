@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 const FEATURE_ROUTES = {
   visual_overview: "visual-overview",
   podcast: "podcast",
+  note_chart: "notechart",
 };
 
 export default function FeatureCard({ feature }) {
