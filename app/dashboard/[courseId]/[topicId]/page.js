@@ -9,12 +9,13 @@ import BackButton from "../../../../components/BackButton";
 
 export default function TopicDashboard() {
   const { courseId, topicId } = useParams();
-  const { getToken } = useAuth();
+  const { getToken, isLoaded } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!isLoaded) return;
     async function load() {
       try {
         const token = await getToken();
@@ -31,7 +32,7 @@ export default function TopicDashboard() {
       }
     }
     load();
-  }, [topicId, getToken]);
+  }, [topicId, getToken, isLoaded]);
 
   if (loading) {
     return <p style={{ color: "var(--text-muted)" }}>Loading dashboard...</p>;

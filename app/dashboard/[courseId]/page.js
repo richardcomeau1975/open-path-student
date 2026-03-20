@@ -10,12 +10,13 @@ import BackButton from "../../../components/BackButton";
 export default function TopicsPage() {
   const { courseId } = useParams();
   const router = useRouter();
-  const { getToken } = useAuth();
+  const { getToken, isLoaded } = useAuth();
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!isLoaded) return;
     async function load() {
       try {
         const token = await getToken();
@@ -32,7 +33,7 @@ export default function TopicsPage() {
       }
     }
     load();
-  }, [courseId, getToken]);
+  }, [courseId, getToken, isLoaded]);
 
   if (loading) {
     return <p style={{ color: "var(--text-muted)" }}>Loading topics...</p>;

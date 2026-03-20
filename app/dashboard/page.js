@@ -6,12 +6,13 @@ import { apiFetch } from "../../lib/api";
 import CourseCard from "../../components/CourseCard";
 
 export default function CoursesPage() {
-  const { getToken } = useAuth();
+  const { getToken, isLoaded } = useAuth();
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    if (!isLoaded) return;
     async function load() {
       try {
         const token = await getToken();
@@ -24,7 +25,7 @@ export default function CoursesPage() {
       }
     }
     load();
-  }, [getToken]);
+  }, [getToken, isLoaded]);
 
   if (loading) {
     return <p style={{ color: "var(--text-muted)" }}>Loading courses...</p>;
