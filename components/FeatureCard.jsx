@@ -7,6 +7,7 @@ const FEATURE_ROUTES = {
   podcast: "podcast",
   note_chart: "notechart",
   test_me: "test-me",
+  how_tested: "how-tested",
 };
 
 export default function FeatureCard({ feature }) {

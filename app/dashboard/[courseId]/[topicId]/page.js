@@ -83,6 +83,23 @@ export default function TopicDashboard() {
           <FeatureCard key={feature.key} feature={feature} />
         ))}
       </div>
+
+      {features.find((f) => f.key === "walkthrough" && f.state !== "not_available") && (
+        <div style={{ marginTop: "24px", textAlign: "center" }}>
+          <a
+            href={`/dashboard/${courseId}/${topicId}/knowledge-base`}
+            style={{
+              fontFamily: "Inter, sans-serif",
+              fontSize: "14px",
+              color: "#8B6914",
+              textDecoration: "underline",
+              cursor: "pointer",
+            }}
+          >
+            View Knowledge Base
+          </a>
+        </div>
+      )}
     </div>
   );
 }
