@@ -1,10 +1,28 @@
 "use client";
 
+import { useRouter, useParams } from "next/navigation";
+
+const FEATURE_ROUTES = {
+  visual_overview: "visual-overview",
+  podcast: "podcast",
+};
+
 export default function FeatureCard({ feature }) {
+  const router = useRouter();
+  const { courseId, topicId } = useParams();
   const isAvailable = feature.state !== "not_available";
+
+  const handleClick = () => {
+    if (!isAvailable) return;
+    const route = FEATURE_ROUTES[feature.key];
+    if (route) {
+      router.push(`/dashboard/${courseId}/${topicId}/${route}`);
+    }
+  };
 
   return (
     <div
+      onClick={handleClick}
       style={{
         backgroundColor: "var(--bg-card)",
         border: "1px solid var(--border-card)",
@@ -14,7 +32,7 @@ export default function FeatureCard({ feature }) {
         borderRadius: "var(--radius-lg)",
         padding: "24px",
         opacity: isAvailable ? 1 : 0.55,
-        cursor: isAvailable ? "pointer" : "default",
+        cursor: isAvailable && FEATURE_ROUTES[feature.key] ? "pointer" : "default",
       }}
     >
       <div
