@@ -1,20 +1,44 @@
 "use client";
 
-import { useUser, UserButton } from "@clerk/nextjs";
+import { useState, useEffect } from "react";
+import { useUser, useAuth, UserButton } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { apiFetch } from "../lib/api";
 
 export default function Header() {
   const { user } = useUser();
+  const { getToken, isLoaded } = useAuth();
   const pathname = usePathname();
+  const [courseName, setCourseName] = useState("");
 
   const name = user?.firstName
     ? `${user.firstName} ${user.lastName || ""}`.trim()
     : "";
 
-  // Build breadcrumb from path
+  // Extract courseId from path: /dashboard/{courseId}/...
   const parts = pathname.split("/").filter(Boolean);
-  // parts: ["dashboard"], ["dashboard", courseId], ["dashboard", courseId, "upload"], ["dashboard", courseId, topicId]
+  const courseId = parts.length >= 2 && parts[0] === "dashboard" ? parts[1] : null;
+  // Don't treat "upload" or other non-UUID segments as courseId
+  const isCourseId = courseId && courseId.length > 8;
+
+  useEffect(() => {
+    if (!isCourseId || !isLoaded) {
+      setCourseName("");
+      return;
+    }
+    async function fetchCourse() {
+      try {
+        const token = await getToken();
+        const courses = await apiFetch("/api/courses", {}, token);
+        const course = courses.find((c) => c.id === courseId);
+        if (course) setCourseName(course.name);
+      } catch {
+        setCourseName("");
+      }
+    }
+    fetchCourse();
+  }, [courseId, isCourseId, isLoaded, getToken]);
 
   return (
     <header
@@ -51,6 +75,21 @@ export default function Header() {
             >
               {name}
             </span>
+          </>
+        )}
+        {courseName && (
+          <>
+            <span style={{ color: "var(--text-muted)" }}>/</span>
+            <Link
+              href={`/dashboard/${courseId}`}
+              style={{
+                fontSize: "14px",
+                color: "var(--text-muted)",
+                textDecoration: "none",
+              }}
+            >
+              {courseName}
+            </Link>
           </>
         )}
       </div>

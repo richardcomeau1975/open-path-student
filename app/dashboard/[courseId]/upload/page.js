@@ -292,8 +292,7 @@ export default function UploadPage() {
                   fontSize: "15px",
                 }}
               >
-                Your materials are being prepared — this takes about 10
-                minutes. Check back soon!
+                Your materials are being prepared. We&apos;ll let you know when they&apos;re ready.
               </div>
             )}
 

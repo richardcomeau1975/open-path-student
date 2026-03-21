@@ -229,16 +229,6 @@ export default function PodcastPage() {
           >
             Pause & Ask a Question
           </button>
-          <p
-            style={{
-              marginTop: "8px",
-              fontSize: "12px",
-              color: "#6B6B6B",
-              fontFamily: "Inter, sans-serif",
-            }}
-          >
-            Voice Q&A coming soon
-          </p>
         </div>
       </div>
     </div>
