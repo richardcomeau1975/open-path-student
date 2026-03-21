@@ -12,6 +12,8 @@ export default function HowTestedPage() {
   const { getToken } = useAuth();
 
   const [analysis, setAnalysis] = useState(null);
+  const [formatDescription, setFormatDescription] = useState(null);
+  const [inherited, setInherited] = useState(false);
   const [hasAnalysis, setHasAnalysis] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -31,6 +33,8 @@ export default function HowTestedPage() {
           const data = await res.json();
           if (data.exists) {
             setAnalysis(data.analysis);
+            setFormatDescription(data.format_description || null);
+            setInherited(data.inherited || false);
             setHasAnalysis(true);
           }
         }
@@ -65,6 +69,8 @@ export default function HowTestedPage() {
       if (res.ok) {
         const data = await res.json();
         setAnalysis(data.analysis);
+        setFormatDescription(data.format_description || null);
+        setInherited(false);
         setHasAnalysis(true);
         setShowAnalysis(true);
       }
@@ -139,7 +145,13 @@ export default function HowTestedPage() {
           }}
         >
           {hasAnalysis
-            ? "Upload a new one to update."
+            ? inherited
+              ? formatDescription
+                ? `Your test format: ${formatDescription} (from a previous topic). Upload a new sample exam to customize for this topic.`
+                : "Upload a sample exam or past test to customize for this topic."
+              : formatDescription
+                ? `Your test format: ${formatDescription}. Upload a new one to update.`
+                : "Upload a new one to update."
             : "Upload a sample exam or past test to see how you\u2019ll be tested."}
         </p>
         <label
