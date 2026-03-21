@@ -115,7 +115,7 @@ export default function HowTestedPage() {
             marginTop: "4px",
           }}
         >
-          Exam Intelligence Report
+          How You&apos;re Tested
         </h1>
       </div>
 
@@ -139,8 +139,8 @@ export default function HowTestedPage() {
           }}
         >
           {hasAnalysis
-            ? "Upload a new sample exam to update your analysis"
-            : "Upload a sample exam, past test, or practice questions"}
+            ? "Upload a new one to update."
+            : "Upload a sample exam or past test to see how you\u2019ll be tested."}
         </p>
         <label
           style={{

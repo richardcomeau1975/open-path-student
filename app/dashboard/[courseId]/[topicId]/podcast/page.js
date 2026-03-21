@@ -122,7 +122,7 @@ export default function PodcastPage() {
             marginTop: "4px",
           }}
         >
-          {content.name || "Listen & Explore"}
+          {content.name || "Podcast"}
         </h1>
       </div>
 

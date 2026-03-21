@@ -96,7 +96,7 @@ export default function KnowledgeBasePage() {
               marginTop: "4px",
             }}
           >
-            Your Learning Asset
+            Knowledge Base
           </h1>
         </div>
         <button

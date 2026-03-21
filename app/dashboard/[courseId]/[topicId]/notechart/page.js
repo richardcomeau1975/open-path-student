@@ -134,7 +134,7 @@ export default function NoteChartPage() {
             marginTop: "4px",
           }}
         >
-          Test Your Recall
+          Note Chart
         </h1>
         <p
           style={{
@@ -144,8 +144,7 @@ export default function NoteChartPage() {
             marginTop: "8px",
           }}
         >
-          Answer each question from memory. Don&apos;t look anything up — the
-          point is to see what you actually know.
+          Answer each question from memory. When you&apos;re done, click Evaluate to see where you stand.
         </p>
       </div>
 
@@ -252,16 +251,6 @@ export default function NoteChartPage() {
         >
           Evaluate My Recall
         </button>
-        <p
-          style={{
-            marginTop: "8px",
-            fontSize: "12px",
-            color: "#6B6B6B",
-            fontFamily: "Inter, sans-serif",
-          }}
-        >
-          Evaluation coming soon
-        </p>
       </div>
     </div>
   );

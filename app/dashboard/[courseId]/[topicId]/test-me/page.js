@@ -147,7 +147,7 @@ export default function TestMePage() {
             marginTop: "20px",
           }}
         >
-          No quiz available yet. Generate your materials first.
+          Upload a sample exam first in How You&apos;re Tested, then come back here to test yourself.
         </p>
       </div>
     );
@@ -304,7 +304,7 @@ export default function TestMePage() {
             marginTop: "4px",
           }}
         >
-          Check Your Understanding
+          Test Me
         </h1>
       </div>
 
