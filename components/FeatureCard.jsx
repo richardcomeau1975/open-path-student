@@ -10,6 +10,10 @@ const FEATURE_ROUTES = {
   how_tested: "how-tested",
 };
 
+const CARD_LABELS = {
+  note_chart: "Active Recall",
+};
+
 export default function FeatureCard({ feature }) {
   const router = useRouter();
   const { courseId, topicId } = useParams();
@@ -22,6 +26,8 @@ export default function FeatureCard({ feature }) {
       router.push(`/dashboard/${courseId}/${topicId}/${route}`);
     }
   };
+
+  const label = CARD_LABELS[feature.key] || feature.name;
 
   return (
     <div
@@ -65,29 +71,15 @@ export default function FeatureCard({ feature }) {
         </span>
         <span
           style={{
-            fontSize: "12px",
-            fontWeight: 500,
-            color: "var(--text-muted)",
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
-          }}
-        >
-          {feature.name}
-        </span>
-      </div>
-      {feature.key === "note_chart" && (
-        <p
-          style={{
             fontFamily: "var(--font-display), 'Lora', serif",
             fontWeight: 500,
             fontSize: "15px",
-            color: "var(--text-muted)",
-            marginTop: "8px",
+            color: "var(--text-primary)",
           }}
         >
-          Active Recall
-        </p>
-      )}
+          {label}
+        </span>
+      </div>
     </div>
   );
 }
