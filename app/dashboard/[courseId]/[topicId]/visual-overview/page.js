@@ -244,7 +244,7 @@ export default function VisualOverviewPage() {
                 height: "10px",
                 borderRadius: "50%",
                 border: "none",
-                background: i === currentSlide ? "#8B6914" : "#E8E4DA",
+                background: i === currentSlide ? "#8B6914" : i < currentSlide ? "#4A7C59" : "#E8E4DA",
                 cursor: "pointer",
                 padding: 0,
               }}
