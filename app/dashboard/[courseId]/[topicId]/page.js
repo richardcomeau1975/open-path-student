@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import Link from "next/link";
 import { apiFetch } from "../../../../lib/api";
 import FeatureCard from "../../../../components/FeatureCard";
 import BackButton from "../../../../components/BackButton";
@@ -85,22 +84,6 @@ export default function TopicDashboard() {
         ))}
       </div>
 
-      {features.find((f) => f.key === "walkthrough" && f.state !== "not_available") && (
-        <div style={{ marginTop: "24px", textAlign: "center" }}>
-          <Link
-            href={`/dashboard/${courseId}/${topicId}/knowledge-base`}
-            style={{
-              fontFamily: "Inter, sans-serif",
-              fontSize: "14px",
-              color: "#8B6914",
-              textDecoration: "underline",
-              cursor: "pointer",
-            }}
-          >
-            View Knowledge Base
-          </Link>
-        </div>
-      )}
     </div>
   );
 }

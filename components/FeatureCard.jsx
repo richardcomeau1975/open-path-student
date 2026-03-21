@@ -31,7 +31,7 @@ export default function FeatureCard({ feature }) {
         border: "1px solid var(--border-card)",
         borderLeft: isAvailable
           ? "3px solid #4A7C59"
-          : "1px solid var(--border-card)",
+          : "3px solid #E8E4DA",
         borderRadius: "var(--radius-lg)",
         padding: "24px",
         opacity: isAvailable ? 1 : 0.55,
@@ -43,7 +43,6 @@ export default function FeatureCard({ feature }) {
           display: "flex",
           alignItems: "center",
           gap: "12px",
-          marginBottom: "12px",
         }}
       >
         <span
@@ -76,27 +75,19 @@ export default function FeatureCard({ feature }) {
           {feature.name}
         </span>
       </div>
-      <h3
-        style={{
-          fontFamily: "var(--font-display), 'Lora', serif",
-          fontWeight: 500,
-          fontSize: "17px",
-          color: "var(--text-primary)",
-          marginBottom: "6px",
-        }}
-      >
-        {feature.description}
-      </h3>
-      <p
-        style={{
-          fontSize: "13px",
-          color: isAvailable ? "#4A7C59" : "var(--text-muted)",
-          fontStyle: isAvailable ? "normal" : "italic",
-          fontWeight: isAvailable ? 500 : 400,
-        }}
-      >
-        {isAvailable ? "Ready" : "Not yet available"}
-      </p>
+      {feature.key === "note_chart" && (
+        <p
+          style={{
+            fontFamily: "var(--font-display), 'Lora', serif",
+            fontWeight: 500,
+            fontSize: "15px",
+            color: "var(--text-muted)",
+            marginTop: "8px",
+          }}
+        >
+          Active Recall
+        </p>
+      )}
     </div>
   );
 }
