@@ -38,7 +38,7 @@ export default function NoteChartPage() {
           setQuestions(data.questions || []);
         }
       } catch (err) {
-        console.error("Failed to fetch note chart:", err);
+        console.error("Failed to fetch active recall:", err);
       } finally {
         setLoading(false);
       }
@@ -103,7 +103,7 @@ export default function NoteChartPage() {
           color: "#6B6B6B",
         }}
       >
-        Loading note chart...
+        Loading active recall...
       </div>
     );
   }
@@ -124,7 +124,7 @@ export default function NoteChartPage() {
             letterSpacing: "0.5px",
           }}
         >
-          NOTE CHART
+          ACTIVE RECALL
         </div>
         <h1
           style={{
@@ -134,7 +134,7 @@ export default function NoteChartPage() {
             marginTop: "4px",
           }}
         >
-          Note Chart
+          Active Recall
         </h1>
         <p
           style={{
