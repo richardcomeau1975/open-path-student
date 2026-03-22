@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 const FEATURE_ROUTES = {
   visual_overview: "visual-overview",
   podcast: "podcast",
+  walkthrough: "walkthrough",
   note_chart: "notechart",
   test_me: "test-me",
   how_tested: "how-tested",
