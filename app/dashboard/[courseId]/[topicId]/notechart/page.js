@@ -18,6 +18,11 @@ export default function NoteChartPage() {
   const saveTimerRef = useRef(null);
   const questionsRef = useRef(questions);
 
+  // Evaluation state
+  const [evaluating, setEvaluating] = useState(false);
+  const [evaluation, setEvaluation] = useState(null);
+  const [showEvaluation, setShowEvaluation] = useState(false);
+
   // Keep ref in sync with state
   useEffect(() => {
     questionsRef.current = questions;
@@ -44,6 +49,26 @@ export default function NoteChartPage() {
       }
     };
     fetchQuestions();
+  }, [topicId, getToken]);
+
+  // Check for existing evaluation on mount
+  useEffect(() => {
+    async function checkEvaluation() {
+      try {
+        const token = await getToken();
+        const res = await fetch(
+          `${API_URL}/api/topics/${topicId}/notechart/evaluation`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        const data = await res.json();
+        if (data.exists) {
+          setEvaluation(data.evaluation);
+        }
+      } catch (err) {}
+    }
+    checkEvaluation();
   }, [topicId, getToken]);
 
   const saveAnswers = async () => {
@@ -81,6 +106,26 @@ export default function NoteChartPage() {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(() => saveAnswers(), 2000);
   };
+
+  async function evaluateAnswers() {
+    setEvaluating(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(
+        `${API_URL}/api/topics/${topicId}/notechart/evaluate`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const data = await res.json();
+      setEvaluation(data.evaluation);
+      setShowEvaluation(true);
+    } catch (err) {
+      console.error("Evaluation failed:", err);
+    }
+    setEvaluating(false);
+  }
 
   // Group questions by section
   const sections = [];
@@ -144,7 +189,8 @@ export default function NoteChartPage() {
             marginTop: "8px",
           }}
         >
-          Answer each question from memory. When you&apos;re done, click Evaluate to see where you stand.
+          Answer each question from memory. When you&apos;re done, click
+          Evaluate to see where you stand.
         </p>
       </div>
 
@@ -227,31 +273,248 @@ export default function NoteChartPage() {
         </div>
       ))}
 
-      {/* Evaluate button (non-functional until Phase 4) */}
+      {/* Evaluate button */}
       <div
         style={{
           textAlign: "center",
           marginTop: "24px",
-          marginBottom: "40px",
+          marginBottom: "20px",
         }}
       >
         <button
-          disabled
+          onClick={evaluateAnswers}
+          disabled={evaluating}
           style={{
             padding: "14px 36px",
-            background: "#E8E4DA",
-            color: "#6B6B6B",
+            background: evaluating ? "#E8E4DA" : "#9B8E82",
+            color: evaluating ? "#6B6B6B" : "#fff",
             border: "none",
             borderRadius: "8px",
             fontFamily: "Inter, sans-serif",
             fontSize: "16px",
             fontWeight: 500,
-            cursor: "not-allowed",
+            cursor: evaluating ? "not-allowed" : "pointer",
           }}
         >
-          Evaluate My Recall
+          {evaluating ? "Evaluating..." : "Evaluate My Recall"}
         </button>
       </div>
+
+      {/* View Previous Evaluation toggle */}
+      {evaluation && !showEvaluation && (
+        <div style={{ textAlign: "center", marginBottom: "20px" }}>
+          <button
+            onClick={() => setShowEvaluation(true)}
+            style={{
+              background: "transparent",
+              border: "1px solid #E8E4DA",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontSize: 13,
+              cursor: "pointer",
+              fontFamily: "Inter, sans-serif",
+            }}
+          >
+            View Previous Evaluation
+          </button>
+        </div>
+      )}
+
+      {/* Evaluation results */}
+      {showEvaluation && evaluation && (
+        <div style={{ marginTop: "2rem", marginBottom: "40px" }}>
+          <div style={{ textAlign: "right", marginBottom: "1rem" }}>
+            <button
+              onClick={() => setShowEvaluation(false)}
+              style={{
+                background: "transparent",
+                border: "1px solid #E8E4DA",
+                borderRadius: 8,
+                padding: "6px 12px",
+                fontSize: 13,
+                cursor: "pointer",
+                fontFamily: "Inter, sans-serif",
+                color: "#6B6B6B",
+              }}
+            >
+              Hide Evaluation
+            </button>
+          </div>
+
+          {/* What you've built */}
+          <h2
+            style={{
+              fontFamily: "Lora, serif",
+              fontSize: 18,
+              fontWeight: 500,
+              color: "#8B6914",
+              marginBottom: "0.75rem",
+            }}
+          >
+            What you&apos;ve built
+          </h2>
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid #E8E4DA",
+              borderRadius: 12,
+              padding: "1rem 1.25rem",
+              marginBottom: "1.5rem",
+            }}
+          >
+            {evaluation.filter((e) => e.status === "solid").length > 0 ? (
+              evaluation
+                .filter((e) => e.status === "solid")
+                .map((item, i, arr) => (
+                  <div
+                    key={i}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 10,
+                      padding: "8px 0",
+                      borderBottom:
+                        i < arr.length - 1 ? "1px solid #f1efe8" : "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: "50%",
+                        background: "#4A7C59",
+                        flexShrink: 0,
+                      }}
+                    />
+                    <div style={{ fontSize: 14 }}>{item.got}</div>
+                  </div>
+                ))
+            ) : (
+              <div style={{ fontSize: 14, color: "#6B6B6B" }}>
+                Nothing solid yet — keep working at it.
+              </div>
+            )}
+          </div>
+
+          {/* Where to tighten up */}
+          <h2
+            style={{
+              fontFamily: "Lora, serif",
+              fontSize: 18,
+              fontWeight: 500,
+              color: "#8B6914",
+              marginBottom: "0.75rem",
+            }}
+          >
+            Where to tighten up
+          </h2>
+          <div
+            style={{
+              background: "#fff",
+              border: "1px solid #E8E4DA",
+              borderRadius: 12,
+              padding: "1rem 1.25rem",
+              marginBottom: "1.5rem",
+            }}
+          >
+            {evaluation.filter((e) => e.status === "fuzzy").length > 0 ? (
+              evaluation
+                .filter((e) => e.status === "fuzzy")
+                .map((item, i, arr) => (
+                  <div
+                    key={i}
+                    style={{
+                      padding: "10px 0",
+                      borderBottom:
+                        i < arr.length - 1 ? "1px solid #f1efe8" : "none",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 500,
+                        marginBottom: 6,
+                      }}
+                    >
+                      {item.question}
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        marginBottom: 4,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          background: "#4A7C59",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ fontSize: 13, color: "#6B6B6B" }}>
+                        {item.got}
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: "50%",
+                          background: "#C4972A",
+                          flexShrink: 0,
+                        }}
+                      />
+                      <div style={{ fontSize: 13, color: "#6B6B6B" }}>
+                        {item.missing}
+                      </div>
+                    </div>
+                  </div>
+                ))
+            ) : (
+              <div style={{ fontSize: 14, color: "#4A7C59" }}>
+                Everything looks solid.
+              </div>
+            )}
+          </div>
+
+          {/* Walk Through the Gaps button */}
+          {evaluation.filter((e) => e.status === "fuzzy").length > 0 && (
+            <div style={{ textAlign: "center" }}>
+              <button
+                onClick={() =>
+                  router.push(
+                    `/dashboard/${courseId}/${topicId}/walk-gaps`
+                  )
+                }
+                style={{
+                  background: "#9B8E82",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "12px 24px",
+                  fontSize: 15,
+                  fontFamily: "Inter, sans-serif",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                }}
+              >
+                Walk Through the Gaps
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

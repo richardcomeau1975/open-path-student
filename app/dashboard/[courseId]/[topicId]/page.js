@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { apiFetch } from "../../../../lib/api";
 import FeatureCard from "../../../../components/FeatureCard";
@@ -9,6 +9,7 @@ import BackButton from "../../../../components/BackButton";
 
 export default function TopicDashboard() {
   const { courseId, topicId } = useParams();
+  const router = useRouter();
   const { getToken, isLoaded } = useAuth();
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -84,6 +85,14 @@ export default function TopicDashboard() {
         ))}
       </div>
 
+      <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
+        <span
+          onClick={() => router.push(`/dashboard/${courseId}/${topicId}/progress`)}
+          style={{ fontSize: 13, color: "#8B6914", cursor: "pointer", textDecoration: "underline" }}
+        >
+          View Progress
+        </span>
+      </div>
     </div>
   );
 }
