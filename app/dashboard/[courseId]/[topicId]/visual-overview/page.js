@@ -161,42 +161,42 @@ export default function VisualOverviewPage() {
         </h1>
       </div>
 
-      {/* Image display */}
+      {/* Slide card — anchor text above, image below */}
       <div
         style={{
-          background: "#000",
-          borderRadius: "12px",
+          background: "var(--bg-card, #ffffff)",
+          borderRadius: 12,
           overflow: "hidden",
-          position: "relative",
-          aspectRatio: "16/10",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          border: "1px solid var(--border-card, #E8E4DA)",
         }}
       >
-        <img
-          src={images[currentSlide]?.url}
-          alt={`Slide ${currentSlide + 1}`}
-          style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
-        />
-        {/* Anchor text overlay */}
+        {/* Anchor text — clean, centered, above the image */}
         {content?.visual_overview_slides?.[currentSlide]?.anchor_text && (
           <div style={{
-            position: "absolute",
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: "16px 24px",
-            background: "linear-gradient(transparent, rgba(0,0,0,0.6))",
-            color: "#ffffff",
-            fontSize: 18,
-            fontFamily: "Lora, serif",
-            fontWeight: 500,
-            lineHeight: 1.4,
+            padding: "28px 32px 16px",
+            textAlign: "center",
           }}>
-            {content.visual_overview_slides[currentSlide].anchor_text}
+            <p style={{
+              fontSize: 22,
+              fontFamily: "var(--font-display, 'Lora', serif)",
+              fontWeight: 500,
+              color: "var(--text-primary, #1a1a1a)",
+              lineHeight: 1.4,
+              margin: 0,
+            }}>
+              {content.visual_overview_slides[currentSlide].anchor_text}
+            </p>
           </div>
         )}
+
+        {/* Image below the text */}
+        <div style={{ padding: "0 16px 16px" }}>
+          <img
+            src={images[currentSlide]?.url}
+            alt={`Slide ${currentSlide + 1}`}
+            style={{ width: "100%", borderRadius: 8 }}
+          />
+        </div>
       </div>
 
       {/* Audio element (hidden) */}
