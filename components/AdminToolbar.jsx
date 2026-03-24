@@ -54,6 +54,8 @@ export default function AdminToolbar({
   const [testPromptText, setTestPromptText] = useState("");
   const [status, setStatus] = useState(null); // {exists, file_count}
   const [error, setError] = useState("");
+  const [viewOpen, setViewOpen] = useState(false);
+  const [viewContent, setViewContent] = useState("");
   const fileRef = useRef(null);
 
   // Load status on mount
@@ -152,6 +154,17 @@ export default function AdminToolbar({
     });
   }
 
+  async function handleView() {
+    setError("");
+    try {
+      const data = await authFetch(`/api/topics/${topicId}/admin/view/${outputType}`);
+      setViewContent(data.content || JSON.stringify(data, null, 2));
+      setViewOpen(true);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   const exists = status?.exists;
   const fileCount = status?.file_count || 0;
   const isLoading = loading !== null;
@@ -184,6 +197,17 @@ export default function AdminToolbar({
         </div>
 
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
+          {/* View */}
+          {exists && (
+            <button
+              style={btnOutline}
+              onClick={() => viewOpen ? setViewOpen(false) : handleView()}
+              disabled={isLoading}
+            >
+              {viewOpen ? "Hide" : "View"}
+            </button>
+          )}
+
           {/* Replace */}
           <label
             style={{
@@ -260,6 +284,29 @@ export default function AdminToolbar({
       {error && (
         <div style={{ color: "#c0392b", fontSize: 12, marginTop: 6 }}>
           {error}
+        </div>
+      )}
+
+      {/* View content */}
+      {viewOpen && viewContent && (
+        <div style={{ marginTop: 8 }}>
+          <pre style={{
+            background: "#fff",
+            border: "1px solid #E8E4DA",
+            borderRadius: 8,
+            padding: 12,
+            fontSize: 12,
+            maxHeight: 300,
+            overflow: "auto",
+            whiteSpace: "pre-wrap",
+            wordWrap: "break-word",
+            fontFamily: "monospace",
+          }}>
+            {viewContent}
+          </pre>
+          <div style={{ marginTop: 4, fontSize: 11, color: "#6B6B6B" }}>
+            {viewContent.split(/\s+/).length} words · {viewContent.length} chars
+          </div>
         </div>
       )}
 
