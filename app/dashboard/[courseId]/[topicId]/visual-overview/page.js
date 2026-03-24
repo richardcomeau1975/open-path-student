@@ -166,6 +166,24 @@ export default function VisualOverviewPage() {
           alt={`Slide ${currentSlide + 1}`}
           style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }}
         />
+        {/* Anchor text overlay */}
+        {content?.visual_overview_slides?.[currentSlide]?.anchor_text && (
+          <div style={{
+            position: "absolute",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: "16px 24px",
+            background: "linear-gradient(transparent, rgba(0,0,0,0.6))",
+            color: "#ffffff",
+            fontSize: 18,
+            fontFamily: "Lora, serif",
+            fontWeight: 500,
+            lineHeight: 1.4,
+          }}>
+            {content.visual_overview_slides[currentSlide].anchor_text}
+          </div>
+        )}
       </div>
 
       {/* Audio element (hidden) */}
