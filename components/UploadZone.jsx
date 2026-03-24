@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 
-const ALLOWED = [".pdf", ".pptx", ".docx", ".xlsx", ".txt", ".md"];
+const ALLOWED = [".pdf", ".pptx", ".docx", ".xlsx", ".txt", ".md", ".yaml", ".yml"];
 
 export default function UploadZone({ files, setFiles }) {
   const inputRef = useRef(null);
@@ -63,13 +63,13 @@ export default function UploadZone({ files, setFiles }) {
             color: "var(--text-muted)",
           }}
         >
-          PDF, PPTX, DOCX, XLSX, TXT, MD — max 10 files, 50MB each
+          PDF, PPTX, DOCX, XLSX, TXT, MD, YAML — max 10 files, 50MB each
         </p>
         <input
           ref={inputRef}
           type="file"
           multiple
-          accept=".pdf,.pptx,.docx,.xlsx,.txt,.md"
+          accept=".pdf,.pptx,.docx,.xlsx,.txt,.md,.yaml,.yml"
           style={{ display: "none" }}
           onChange={(e) => handleFiles(e.target.files)}
         />
