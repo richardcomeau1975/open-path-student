@@ -26,10 +26,15 @@ export default function PodcastPage() {
   const [qaState, setQaState] = useState('idle'); // 'idle', 'recording', 'thinking', 'speaking'
   const [qaAnswer, setQaAnswer] = useState(null);
   const [qaTranscript, setQaTranscript] = useState(null);
+  const [qaHistory, setQaHistory] = useState([]); // (#5) conversation history
+  const [qaCount, setQaCount] = useState(0); // (#7) interruption counter
+  const [fillerUrls, setFillerUrls] = useState([]); // (#3) filler audio URLs
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const fillerAudioRef = useRef(null); // currently playing filler
 
   const API = process.env.NEXT_PUBLIC_API_URL;
+  const MAX_QUESTIONS = 5; // (#7) enforce limit
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -45,6 +50,23 @@ export default function PodcastPage() {
     };
     fetchContent();
   }, [topicId, getToken, refreshKey]);
+
+  // (#3) Load filler audio URLs on mount
+  useEffect(() => {
+    async function loadFillers() {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${API}/api/voice/podcast/filler-urls`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setFillerUrls(data.fillers || []);
+        }
+      } catch (e) { /* silently fail — fillers are optional */ }
+    }
+    loadFillers();
+  }, [getToken]);
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
@@ -120,29 +142,62 @@ export default function PodcastPage() {
     }
   }
 
+  // (#3/#4) Play a random filler clip
+  function playRandomFiller() {
+    if (fillerUrls.length === 0) return Promise.resolve();
+    const filler = fillerUrls[Math.floor(Math.random() * fillerUrls.length)];
+    return new Promise((resolve) => {
+      const audio = new Audio(filler.url);
+      fillerAudioRef.current = audio;
+      audio.onended = () => { fillerAudioRef.current = null; resolve(); };
+      audio.onerror = () => { fillerAudioRef.current = null; resolve(); };
+      audio.play().catch(() => resolve());
+    });
+  }
+
   async function sendQaQuestion(audioBlob) {
-    setQaState('thinking');
+    setQaState('speaking'); // (#4) show speaking immediately — filler is playing
 
     try {
       const arrayBuffer = await audioBlob.arrayBuffer();
       const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
+      // (#4) Start filler immediately AND API call in parallel
+      const fillerPromise = playRandomFiller();
+
       const token = await getToken();
-      const res = await fetch(`${API}/api/voice/podcast/${topicId}/ask`, {
+      const apiPromise = fetch(`${API}/api/voice/podcast/${topicId}/ask`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ audio: base64Audio }),
-      });
+        body: JSON.stringify({
+          audio: base64Audio,
+          pausedAt: currentTime, // (#1)
+          history: qaHistory, // (#5)
+        }),
+      }).then(r => r.json());
 
-      const data = await res.json();
+      // Wait for BOTH filler to finish AND API to respond
+      const [, data] = await Promise.all([fillerPromise, apiPromise]);
+
+      // Tiny pause after filler before real response
+      await new Promise(r => setTimeout(r, 200));
+
       setQaTranscript(data.transcript);
       setQaAnswer(data.answer);
 
+      // (#5) Append to conversation history
+      if (data.transcript && data.answer) {
+        setQaHistory(prev => [...prev,
+          { role: 'user', content: data.transcript },
+          { role: 'assistant', content: data.answer },
+        ]);
+        setQaCount(c => c + 1); // (#7)
+      }
+
       if (data.audio) {
-        setQaState('speaking');
         await playAudioBase64(data.audio);
       }
     } catch (err) {
@@ -345,33 +400,39 @@ export default function PodcastPage() {
           </div>
         </div>
 
-        {/* Pause & Ask button */}
+        {/* Pause & Ask button — (#7) enforces 5 question limit */}
         <div style={{ marginTop: "28px", textAlign: "center" }}>
-          <button
-            onClick={() => {
-              if (audioRef.current && playing) {
-                audioRef.current.pause();
-                setPlaying(false);
-              }
-              setQaMode(true);
-              setQaState('idle');
-              setQaAnswer(null);
-              setQaTranscript(null);
-            }}
-            style={{
-              padding: "12px 28px",
-              background: "#F5F3EE",
-              border: "1px solid #E8E4DA",
-              borderRadius: "8px",
-              color: "#6B6B6B",
-              fontFamily: "Inter, sans-serif",
-              fontSize: "14px",
-              fontWeight: 500,
-              cursor: "pointer",
-            }}
-          >
-            Pause & Ask a Question
-          </button>
+          {qaCount >= MAX_QUESTIONS ? (
+            <p style={{ fontSize: 13, color: "#6B6B6B", fontFamily: "Inter, sans-serif" }}>
+              You&apos;ve used your {MAX_QUESTIONS} questions for this podcast — resume and finish listening, then use the walkthrough to dig deeper.
+            </p>
+          ) : (
+            <button
+              onClick={() => {
+                if (audioRef.current && playing) {
+                  audioRef.current.pause();
+                  setPlaying(false);
+                }
+                setQaMode(true);
+                setQaState('idle');
+                setQaAnswer(null);
+                setQaTranscript(null);
+              }}
+              style={{
+                padding: "12px 28px",
+                background: "#F5F3EE",
+                border: "1px solid #E8E4DA",
+                borderRadius: "8px",
+                color: "#6B6B6B",
+                fontFamily: "Inter, sans-serif",
+                fontSize: "14px",
+                fontWeight: 500,
+                cursor: "pointer",
+              }}
+            >
+              Pause & Ask a Question ({MAX_QUESTIONS - qaCount} remaining)
+            </button>
+          )}
         </div>
       </div>
 
@@ -455,6 +516,7 @@ export default function PodcastPage() {
                 <button
                   onClick={() => {
                     setQaMode(false);
+                    setQaHistory([]); // (#5) reset history on resume
                     if (audioRef.current) audioRef.current.play();
                     setPlaying(true);
                   }}
