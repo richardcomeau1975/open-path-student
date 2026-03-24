@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from "next/navigation";
+import { useAdmin } from "../lib/admin";
 
 const FEATURE_ROUTES = {
   visual_overview: "visual-overview",
@@ -18,10 +19,11 @@ const CARD_LABELS = {
 export default function FeatureCard({ feature }) {
   const router = useRouter();
   const { courseId, topicId } = useParams();
+  const { isAdmin } = useAdmin();
   const isAvailable = feature.state !== "not_available";
 
   const handleClick = () => {
-    if (!isAvailable) return;
+    if (!isAvailable && !isAdmin) return;
     const route = FEATURE_ROUTES[feature.key];
     if (route) {
       router.push(`/dashboard/${courseId}/${topicId}/${route}`);
@@ -41,8 +43,8 @@ export default function FeatureCard({ feature }) {
           : "3px solid #E8E4DA",
         borderRadius: "var(--radius-lg)",
         padding: "24px",
-        opacity: isAvailable ? 1 : 0.55,
-        cursor: isAvailable && FEATURE_ROUTES[feature.key] ? "pointer" : "default",
+        opacity: (isAvailable || isAdmin) ? 1 : 0.55,
+        cursor: (isAvailable || isAdmin) && FEATURE_ROUTES[feature.key] ? "pointer" : "default",
       }}
     >
       <div

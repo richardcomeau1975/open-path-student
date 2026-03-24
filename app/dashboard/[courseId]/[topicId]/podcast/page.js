@@ -203,10 +203,20 @@ export default function PodcastPage() {
 
   if (!content?.podcast_audio) {
     return (
-      <div style={{ padding: "40px" }}>
+      <div style={{ padding: "24px 32px", maxWidth: "800px", margin: "0 auto" }}>
         <button onClick={() => router.back()} style={backBtnStyle}>
           &larr; Back
         </button>
+        {isAdmin && (
+          <>
+            <AdminToolbar topicId={topicId} outputType="podcast_script" label="Podcast Script"
+              showTestPrompt={true} downstreamLabel="Generate audio ↓" accept=".txt,.md"
+              onRefresh={() => setRefreshKey(k => k + 1)} />
+            <AdminToolbar topicId={topicId} outputType="podcast_audio" label="Podcast Audio"
+              showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"
+              onRefresh={() => setRefreshKey(k => k + 1)} />
+          </>
+        )}
         <p style={{ fontFamily: "Inter, sans-serif", color: "#6B6B6B", marginTop: "20px" }}>
           No podcast available yet.
         </p>

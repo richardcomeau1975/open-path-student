@@ -93,10 +93,23 @@ export default function VisualOverviewPage() {
 
   if (!images.length) {
     return (
-      <div style={{ padding: "40px" }}>
+      <div style={{ padding: "24px 32px", maxWidth: "1000px", margin: "0 auto" }}>
         <button onClick={() => router.back()} style={backBtnStyle}>
           &larr; Back
         </button>
+        {isAdmin && (
+          <>
+            <AdminToolbar topicId={topicId} outputType="visual_overview_script" label="VO Script"
+              showTestPrompt={true} downstreamLabel="Generate images + narration ↓" accept=".json,.txt,.md"
+              onRefresh={() => setRefreshKey(k => k + 1)} />
+            <AdminToolbar topicId={topicId} outputType="visual_overview_images" label="VO Images"
+              showTestPrompt={false} downstreamLabel={null} accept="image/*"
+              onRefresh={() => setRefreshKey(k => k + 1)} />
+            <AdminToolbar topicId={topicId} outputType="narration_audio" label="Narration Audio"
+              showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"
+              onRefresh={() => setRefreshKey(k => k + 1)} />
+          </>
+        )}
         <p style={{ fontFamily: "Inter, sans-serif", color: "#6B6B6B", marginTop: "20px" }}>
           No visual overview content available yet.
         </p>
