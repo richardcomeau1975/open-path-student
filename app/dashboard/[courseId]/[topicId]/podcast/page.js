@@ -293,6 +293,32 @@ export default function PodcastPage() {
           <AdminToolbar topicId={topicId} outputType="podcast_audio" label="Podcast Audio"
             showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"
             onRefresh={() => setRefreshKey(k => k + 1)} />
+          {fillerUrls.length === 0 && (
+            <div style={{ background: "#f5f0e8", border: "1px solid #E8E4DA", borderRadius: 10, padding: "8px 14px", marginBottom: 10 }}>
+              <button
+                onClick={async () => {
+                  try {
+                    const token = await getToken();
+                    const res = await fetch(`${API}/api/voice/podcast/generate-fillers`, {
+                      method: "POST",
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    const data = await res.json();
+                    alert(`Generated ${data.generated}/16 filler clips`);
+                    // Reload fillers
+                    const r2 = await fetch(`${API}/api/voice/podcast/filler-urls`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (r2.ok) { const d = await r2.json(); setFillerUrls(d.fillers || []); }
+                  } catch (e) { alert("Failed: " + e.message); }
+                }}
+                style={{ background: "#9B8E82", color: "#fff", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 12, cursor: "pointer", fontFamily: "Inter, sans-serif" }}
+              >
+                Generate Filler Clips (one-time)
+              </button>
+              <span style={{ fontSize: 11, color: "#6B6B6B", marginLeft: 8 }}>No filler clips found — generate them once</span>
+            </div>
+          )}
         </>
       )}
 
