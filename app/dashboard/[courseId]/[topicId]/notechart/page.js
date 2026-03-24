@@ -165,7 +165,7 @@ export default function NoteChartPage() {
 
       {isAdmin && (
         <AdminToolbar topicId={topicId} outputType="notechart" label="Note Chart"
-          showTestPrompt={true} downstreamLabel={null} accept=".json,.txt,.md"
+          showTestPrompt={true} downstreamLabel={null} accept=".json,.txt,.md,.yaml,.yml"
           onRefresh={() => setRefreshKey(k => k + 1)} />
       )}
 

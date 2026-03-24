@@ -265,7 +265,7 @@ export default function PodcastPage() {
         {isAdmin && (
           <>
             <AdminToolbar topicId={topicId} outputType="podcast_script" label="Podcast Script"
-              showTestPrompt={true} downstreamLabel="Generate audio ↓" accept=".txt,.md"
+              showTestPrompt={true} downstreamLabel="Generate audio ↓" accept=".txt,.md,.yaml,.yml"
               onRefresh={() => setRefreshKey(k => k + 1)} />
             <AdminToolbar topicId={topicId} outputType="podcast_audio" label="Podcast Audio"
               showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"
@@ -288,7 +288,7 @@ export default function PodcastPage() {
       {isAdmin && (
         <>
           <AdminToolbar topicId={topicId} outputType="podcast_script" label="Podcast Script"
-            showTestPrompt={true} downstreamLabel="Generate audio ↓" accept=".txt,.md"
+            showTestPrompt={true} downstreamLabel="Generate audio ↓" accept=".txt,.md,.yaml,.yml"
             onRefresh={() => setRefreshKey(k => k + 1)} />
           <AdminToolbar topicId={topicId} outputType="podcast_audio" label="Podcast Audio"
             showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"

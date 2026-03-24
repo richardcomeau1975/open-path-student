@@ -100,7 +100,7 @@ export default function VisualOverviewPage() {
         {isAdmin && (
           <>
             <AdminToolbar topicId={topicId} outputType="visual_overview_script" label="VO Script"
-              showTestPrompt={true} downstreamLabel="Generate images + narration ↓" accept=".json,.txt,.md"
+              showTestPrompt={true} downstreamLabel="Generate images + narration ↓" accept=".json,.txt,.md,.yaml,.yml"
               onRefresh={() => setRefreshKey(k => k + 1)} />
             <AdminToolbar topicId={topicId} outputType="visual_overview_images" label="VO Images"
               showTestPrompt={false} downstreamLabel={null} accept="image/*"
@@ -126,7 +126,7 @@ export default function VisualOverviewPage() {
       {isAdmin && (
         <>
           <AdminToolbar topicId={topicId} outputType="visual_overview_script" label="VO Script"
-            showTestPrompt={true} downstreamLabel="Generate images + narration ↓" accept=".json,.txt,.md"
+            showTestPrompt={true} downstreamLabel="Generate images + narration ↓" accept=".json,.txt,.md,.yaml,.yml"
             onRefresh={() => setRefreshKey(k => k + 1)} />
           <AdminToolbar topicId={topicId} outputType="visual_overview_images" label="VO Images"
             showTestPrompt={false} downstreamLabel={null} accept="image/*"

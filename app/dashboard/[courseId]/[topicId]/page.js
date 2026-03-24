@@ -79,7 +79,7 @@ export default function TopicDashboard() {
 
       {isAdmin && (
         <AdminToolbar topicId={topicId} outputType="learning_asset" label="Learning Asset"
-          showTestPrompt={true} downstreamLabel="Generate all downstream ↓" accept=".txt,.md"
+          showTestPrompt={true} downstreamLabel="Generate all downstream ↓" accept=".txt,.md,.yaml,.yml"
           onRefresh={() => setRefreshKey(k => k + 1)} />
       )}
 
