@@ -4,14 +4,18 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { apiFetch } from "../../../../../lib/api";
+import { useAdmin } from "../../../../../lib/admin";
+import AdminToolbar from "../../../../../components/AdminToolbar";
 
 export default function VisualOverviewPage() {
   const { courseId, topicId } = useParams();
   const router = useRouter();
   const { getToken } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
@@ -30,7 +34,7 @@ export default function VisualOverviewPage() {
       }
     };
     fetchContent();
-  }, [topicId, getToken]);
+  }, [topicId, getToken, refreshKey]);
 
   const images = content?.visual_overview_images || [];
   const audioSegments = content?.visual_overview_audio || [];
@@ -105,6 +109,20 @@ export default function VisualOverviewPage() {
       <button onClick={() => router.back()} style={backBtnStyle}>
         &larr; Back
       </button>
+
+      {isAdmin && (
+        <>
+          <AdminToolbar topicId={topicId} outputType="visual_overview_script" label="VO Script"
+            showTestPrompt={true} downstreamLabel="Generate images + narration ↓" accept=".json,.txt,.md"
+            onRefresh={() => setRefreshKey(k => k + 1)} />
+          <AdminToolbar topicId={topicId} outputType="visual_overview_images" label="VO Images"
+            showTestPrompt={false} downstreamLabel={null} accept="image/*"
+            onRefresh={() => setRefreshKey(k => k + 1)} />
+          <AdminToolbar topicId={topicId} outputType="narration_audio" label="Narration Audio"
+            showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"
+            onRefresh={() => setRefreshKey(k => k + 1)} />
+        </>
+      )}
 
       <div style={{ marginTop: "16px", marginBottom: "24px" }}>
         <div

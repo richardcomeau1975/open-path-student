@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
+import { useAdmin } from "../../../../../lib/admin";
+import AdminToolbar from "../../../../../components/AdminToolbar";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -10,6 +12,8 @@ export default function NoteChartPage() {
   const { courseId, topicId } = useParams();
   const router = useRouter();
   const { getToken } = useAuth();
+  const { isAdmin } = useAdmin();
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +53,7 @@ export default function NoteChartPage() {
       }
     };
     fetchQuestions();
-  }, [topicId, getToken]);
+  }, [topicId, getToken, refreshKey]);
 
   // Check for existing evaluation on mount
   useEffect(() => {
@@ -158,6 +162,12 @@ export default function NoteChartPage() {
       <button onClick={() => router.back()} style={backBtnStyle}>
         &larr; Back
       </button>
+
+      {isAdmin && (
+        <AdminToolbar topicId={topicId} outputType="notechart" label="Note Chart"
+          showTestPrompt={true} downstreamLabel={null} accept=".json,.txt,.md"
+          onRefresh={() => setRefreshKey(k => k + 1)} />
+      )}
 
       <div style={{ marginTop: "16px", marginBottom: "24px" }}>
         <div

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { apiFetch } from "../../../lib/api";
+import { useAdmin } from "../../../lib/admin";
 import TopicCard from "../../../components/TopicCard";
 import BackButton from "../../../components/BackButton";
 
@@ -11,9 +12,13 @@ export default function TopicsPage() {
   const { courseId } = useParams();
   const router = useRouter();
   const { getToken, isLoaded } = useAuth();
+  const { isAdmin } = useAdmin();
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCreateTest, setShowCreateTest] = useState(false);
+  const [testTopicName, setTestTopicName] = useState("");
+  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -34,6 +39,29 @@ export default function TopicsPage() {
     }
     load();
   }, [courseId, getToken, isLoaded]);
+
+  async function createTestTopic() {
+    if (!testTopicName.trim()) return;
+    setCreating(true);
+    try {
+      const token = await getToken();
+      const API_URL = process.env.NEXT_PUBLIC_API_URL;
+      const res = await fetch(`${API_URL}/api/admin-topics/create`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: testTopicName.trim(), course_id: courseId }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setTestTopicName("");
+      setShowCreateTest(false);
+      // Reload topics
+      const data = await apiFetch(`/api/courses/${courseId}/topics`, {}, token);
+      setTopics(data);
+    } catch (err) {
+      setError(err.message);
+    }
+    setCreating(false);
+  }
 
   if (loading) {
     return <p style={{ color: "var(--text-muted)" }}>Loading topics...</p>;
@@ -85,7 +113,69 @@ export default function TopicsPage() {
         >
           Upload New Materials
         </button>
+        {isAdmin && (
+          <button
+            onClick={() => setShowCreateTest(!showCreateTest)}
+            style={{
+              backgroundColor: "transparent",
+              color: "#9B8E82",
+              border: "1px solid #E8E4DA",
+              borderRadius: "var(--radius)",
+              padding: "10px 20px",
+              fontFamily: "var(--font-body), 'Inter', sans-serif",
+              fontWeight: 500,
+              fontSize: "14px",
+              cursor: "pointer",
+            }}
+          >
+            + Test Topic
+          </button>
+        )}
       </div>
+
+      {isAdmin && showCreateTest && (
+        <div style={{
+          background: "#f5f0e8",
+          border: "1px solid #E8E4DA",
+          borderRadius: 10,
+          padding: "12px 16px",
+          marginBottom: 20,
+          display: "flex",
+          gap: 10,
+          alignItems: "center",
+        }}>
+          <input
+            value={testTopicName}
+            onChange={(e) => setTestTopicName(e.target.value)}
+            placeholder="Test topic name"
+            onKeyDown={(e) => e.key === "Enter" && createTestTopic()}
+            style={{
+              flex: 1,
+              padding: "8px 12px",
+              border: "1px solid #E8E4DA",
+              borderRadius: 8,
+              fontSize: 14,
+              fontFamily: "Inter, sans-serif",
+            }}
+          />
+          <button
+            onClick={createTestTopic}
+            disabled={creating || !testTopicName.trim()}
+            style={{
+              background: "#9B8E82",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontSize: 13,
+              fontWeight: 500,
+              cursor: creating ? "not-allowed" : "pointer",
+            }}
+          >
+            {creating ? "Creating..." : "Create"}
+          </button>
+        </div>
+      )}
 
       {topics.length === 0 ? (
         <div style={{ textAlign: "center", padding: "60px 24px" }}>

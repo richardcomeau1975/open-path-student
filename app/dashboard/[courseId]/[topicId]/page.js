@@ -4,14 +4,18 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { apiFetch } from "../../../../lib/api";
+import { useAdmin } from "../../../../lib/admin";
 import FeatureCard from "../../../../components/FeatureCard";
 import BackButton from "../../../../components/BackButton";
+import AdminToolbar from "../../../../components/AdminToolbar";
 
 export default function TopicDashboard() {
   const { courseId, topicId } = useParams();
   const router = useRouter();
   const { getToken, isLoaded } = useAuth();
+  const { isAdmin } = useAdmin();
   const [dashboard, setDashboard] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,7 +37,7 @@ export default function TopicDashboard() {
       }
     }
     load();
-  }, [topicId, getToken, isLoaded]);
+  }, [topicId, getToken, isLoaded, refreshKey]);
 
   if (loading) {
     return <p style={{ color: "var(--text-muted)" }}>Loading dashboard...</p>;
@@ -72,6 +76,12 @@ export default function TopicDashboard() {
           </p>
         )}
       </div>
+
+      {isAdmin && (
+        <AdminToolbar topicId={topicId} outputType="learning_asset" label="Learning Asset"
+          showTestPrompt={true} downstreamLabel="Generate all downstream ↓" accept=".txt,.md"
+          onRefresh={() => setRefreshKey(k => k + 1)} />
+      )}
 
       <div
         style={{

@@ -4,14 +4,18 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { apiFetch } from "../../../../../lib/api";
+import { useAdmin } from "../../../../../lib/admin";
+import AdminToolbar from "../../../../../components/AdminToolbar";
 
 export default function PodcastPage() {
   const { courseId, topicId } = useParams();
   const router = useRouter();
   const { getToken } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const [content, setContent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -40,7 +44,7 @@ export default function PodcastPage() {
       }
     };
     fetchContent();
-  }, [topicId, getToken]);
+  }, [topicId, getToken, refreshKey]);
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
@@ -215,6 +219,17 @@ export default function PodcastPage() {
       <button onClick={() => router.back()} style={backBtnStyle}>
         &larr; Back
       </button>
+
+      {isAdmin && (
+        <>
+          <AdminToolbar topicId={topicId} outputType="podcast_script" label="Podcast Script"
+            showTestPrompt={true} downstreamLabel="Generate audio ↓" accept=".txt,.md"
+            onRefresh={() => setRefreshKey(k => k + 1)} />
+          <AdminToolbar topicId={topicId} outputType="podcast_audio" label="Podcast Audio"
+            showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"
+            onRefresh={() => setRefreshKey(k => k + 1)} />
+        </>
+      )}
 
       <div style={{ marginTop: "16px", marginBottom: "24px" }}>
         <div

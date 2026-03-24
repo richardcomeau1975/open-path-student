@@ -2,10 +2,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
+import { useAdmin } from '../../../../../lib/admin';
+import AdminToolbar from '../../../../../components/AdminToolbar';
 
 export default function WalkthroughPage() {
   const { courseId, topicId } = useParams();
   const { getToken } = useAuth();
+  const { isAdmin } = useAdmin();
 
   // View state
   const [view, setView] = useState('choices'); // 'choices' or 'active'
@@ -303,6 +306,12 @@ export default function WalkthroughPage() {
         >
           &larr; Back
         </div>
+
+        {isAdmin && (
+          <AdminToolbar topicId={topicId} outputType="learning_asset" label="Learning Asset"
+            showTestPrompt={true} downstreamLabel={null} accept=".txt,.md"
+            onRefresh={() => {}} />
+        )}
 
         <div style={{
           fontSize: 13,
