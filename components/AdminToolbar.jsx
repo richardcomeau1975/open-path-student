@@ -202,6 +202,15 @@ export default function AdminToolbar({
     });
   }
 
+  async function handleClearDownstream() {
+    await doAction("clearing downstream", async () => {
+      await authFetch(
+        `/api/topics/${topicId}/admin/clear-from/${outputType}`,
+        { method: "DELETE" }
+      );
+    });
+  }
+
   async function handleView() {
     setError("");
     try {
@@ -324,6 +333,17 @@ export default function AdminToolbar({
               disabled={isLoading}
             >
               {loading === "downstream" ? "..." : downstreamLabel}
+            </button>
+          )}
+
+          {/* Clear downstream */}
+          {downstreamLabel && (
+            <button
+              style={btnRed}
+              onClick={handleClearDownstream}
+              disabled={isLoading}
+            >
+              {loading === "clearing downstream" ? "..." : "Clear downstream"}
             </button>
           )}
         </div>
