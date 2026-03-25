@@ -85,6 +85,41 @@ export default function AdminToolbar({
     }
   }
 
+  const pollRef = useRef(null);
+
+  function startPolling() {
+    if (pollRef.current) return;
+    pollRef.current = setInterval(async () => {
+      const prev = status?.exists;
+      await loadStatus();
+      // Check if status changed — if so, stop polling and refresh
+      // We re-read status inside loadStatus, so check after
+    }, 5000);
+    // Also set a max polling duration of 10 minutes
+    setTimeout(() => stopPolling(), 600000);
+  }
+
+  function stopPolling() {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+  }
+
+  // Watch for status changes while polling — stop when output appears
+  useEffect(() => {
+    if (pollRef.current && status?.exists && loading) {
+      stopPolling();
+      setLoading(null);
+      if (onRefresh) onRefresh();
+    }
+  }, [status]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
+
   async function doAction(actionName, fn) {
     setLoading(actionName);
     setError("");
@@ -96,6 +131,19 @@ export default function AdminToolbar({
       setError(e.message);
     }
     setLoading(null);
+  }
+
+  // Fire-and-forget action that starts polling
+  async function doBackgroundAction(actionName, fn) {
+    setLoading(actionName);
+    setError("");
+    try {
+      await fn();
+      startPolling();
+    } catch (e) {
+      setError(e.message);
+      setLoading(null);
+    }
   }
 
   async function handleReplace(files) {
@@ -116,7 +164,7 @@ export default function AdminToolbar({
   }
 
   async function handleGenerate() {
-    await doAction("generate", async () => {
+    await doBackgroundAction("generate", async () => {
       await authFetch(`/api/topics/${topicId}/admin/generate/${outputType}`, {
         method: "POST",
       });
@@ -125,7 +173,7 @@ export default function AdminToolbar({
 
   async function handleTestPrompt() {
     if (!testPromptText.trim()) return;
-    await doAction("test", async () => {
+    await doBackgroundAction("test", async () => {
       await authFetch(
         `/api/topics/${topicId}/admin/generate-test/${outputType}`,
         {
@@ -146,7 +194,7 @@ export default function AdminToolbar({
   }
 
   async function handleDownstream() {
-    await doAction("downstream", async () => {
+    await doBackgroundAction("downstream", async () => {
       await authFetch(
         `/api/topics/${topicId}/admin/generate-from/${outputType}`,
         { method: "POST" }
