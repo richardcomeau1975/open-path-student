@@ -31,6 +31,9 @@ export default function WalkthroughPage() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
+  // Admin test prompt
+  const [testPrompt, setTestPrompt] = useState('');
+
   const API = process.env.NEXT_PUBLIC_API_URL;
 
   // Load existing sessions on mount
@@ -65,6 +68,7 @@ export default function WalkthroughPage() {
           mode,
           cluster,
           session_id: sessionId,
+          ...(testPrompt.trim() ? { test_prompt: testPrompt.trim() } : {}),
         }),
       });
       const data = await res.json();
@@ -395,6 +399,26 @@ export default function WalkthroughPage() {
             Jump into scenarios and application
           </div>
         </div>
+
+        {/* Admin: test prompt textarea */}
+        {isAdmin && (
+          <div style={{ marginTop: 16, padding: 16, background: '#f5f0e8', borderRadius: 8, border: '1px solid #E8E4DA' }}>
+            <p style={{ fontSize: 12, fontWeight: 500, color: '#6B6B6B', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>
+              Test Walkthrough Prompt (optional — leave empty to use system prompt)
+            </p>
+            <textarea
+              value={testPrompt}
+              onChange={e => setTestPrompt(e.target.value)}
+              placeholder="Paste a test prompt here. This only affects this session."
+              style={{
+                width: '100%', minHeight: 120, padding: 12,
+                border: '1px solid #E8E4DA', borderRadius: 8,
+                fontSize: 13, fontFamily: 'Inter, sans-serif',
+                resize: 'vertical', boxSizing: 'border-box',
+              }}
+            />
+          </div>
+        )}
       </div>
     );
   }
