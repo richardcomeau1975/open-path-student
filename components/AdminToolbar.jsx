@@ -58,10 +58,10 @@ export default function AdminToolbar({
   const [viewContent, setViewContent] = useState("");
   const fileRef = useRef(null);
 
-  // Load status on mount
-  useState(() => {
+  // Load status on mount and when props change
+  useEffect(() => {
     loadStatus();
-  });
+  }, [topicId, outputType]);
 
   async function authFetch(path, opts = {}) {
     const token = await getToken();
