@@ -56,6 +56,7 @@ export default function AdminToolbar({
   const [error, setError] = useState("");
   const [viewOpen, setViewOpen] = useState(false);
   const [viewContent, setViewContent] = useState("");
+  const [progress, setProgress] = useState(null); // generation progress
   const fileRef = useRef(null);
 
   // Load status on mount and when props change
@@ -90,13 +91,26 @@ export default function AdminToolbar({
   function startPolling() {
     if (pollRef.current) return;
     pollRef.current = setInterval(async () => {
-      const prev = status?.exists;
+      // Poll both status and progress
       await loadStatus();
-      // Check if status changed — if so, stop polling and refresh
-      // We re-read status inside loadStatus, so check after
-    }, 5000);
-    // Also set a max polling duration of 10 minutes
-    setTimeout(() => stopPolling(), 600000);
+      try {
+        const prog = await authFetch(`/api/topics/${topicId}/admin/progress`);
+        setProgress(prog.active ? prog : null);
+        // If progress shows done or failed, stop polling
+        if (prog.active && (prog.status === "done" || prog.status === "failed")) {
+          stopPolling();
+          setLoading(null);
+          setProgress(null);
+          if (onRefresh) onRefresh();
+        }
+      } catch (e) { /* ignore */ }
+    }, 3000);
+    // Max polling: 15 minutes
+    setTimeout(() => {
+      stopPolling();
+      setLoading(null);
+      setProgress(null);
+    }, 900000);
   }
 
   function stopPolling() {
@@ -105,15 +119,6 @@ export default function AdminToolbar({
       pollRef.current = null;
     }
   }
-
-  // Watch for status changes while polling — stop when output appears
-  useEffect(() => {
-    if (pollRef.current && status?.exists && loading) {
-      stopPolling();
-      setLoading(null);
-      if (onRefresh) onRefresh();
-    }
-  }, [status]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -352,6 +357,25 @@ export default function AdminToolbar({
       {error && (
         <div style={{ color: "#c0392b", fontSize: 12, marginTop: 6 }}>
           {error}
+        </div>
+      )}
+
+      {/* Generation progress indicator */}
+      {progress && progress.steps && (
+        <div style={{ marginTop: 6, display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+          {progress.steps.map((s) => (
+            <span key={s.name} style={{
+              fontSize: 11,
+              padding: "2px 6px",
+              borderRadius: 4,
+              background: s.status === "done" ? "#e8f5e9" : s.status === "running" ? "#fff8e1" : s.status === "failed" ? "#ffebee" : "#f5f5f5",
+              color: s.status === "done" ? "#4A7C59" : s.status === "running" ? "#C4972A" : s.status === "failed" ? "#c0392b" : "#999",
+              fontWeight: s.status === "running" ? 600 : 400,
+            }}>
+              {s.status === "running" ? "⏳ " : s.status === "done" ? "✓ " : s.status === "failed" ? "✗ " : ""}{s.name.replace(/_/g, " ")}
+              {s.error ? `: ${s.error.substring(0, 50)}` : ""}
+            </span>
+          ))}
         </div>
       )}
 
