@@ -29,6 +29,7 @@ export default function PodcastPage() {
   const [qaHistory, setQaHistory] = useState([]); // (#5) conversation history
   const [qaCount, setQaCount] = useState(0); // (#7) interruption counter
   const [fillerUrls, setFillerUrls] = useState([]); // (#3) filler audio URLs
+  const [qaTextInput, setQaTextInput] = useState('');
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const fillerAudioRef = useRef(null); // currently playing filler
@@ -195,6 +196,52 @@ export default function PodcastPage() {
           { role: 'assistant', content: data.answer },
         ]);
         setQaCount(c => c + 1); // (#7)
+      }
+
+      if (data.audio) {
+        await playAudioBase64(data.audio);
+      }
+    } catch (err) {
+      console.error('Q&A failed:', err);
+    }
+
+    setQaState('idle');
+  }
+
+  async function sendQaTextQuestion(question) {
+    setQaState('thinking');
+    setQaTextInput('');
+
+    try {
+      const fillerPromise = playRandomFiller();
+
+      const token = await getToken();
+      const apiPromise = fetch(`${API}/api/voice/podcast/${topicId}/ask`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: question,
+          pausedAt: currentTime,
+          history: qaHistory,
+        }),
+      }).then(r => r.json());
+
+      const [, data] = await Promise.all([fillerPromise, apiPromise]);
+      await new Promise(r => setTimeout(r, 200));
+
+      setQaTranscript(question);
+      setQaAnswer(data.answer);
+      setQaState('speaking');
+
+      if (question && data.answer) {
+        setQaHistory(prev => [...prev,
+          { role: 'user', content: question },
+          { role: 'assistant', content: data.answer },
+        ]);
+        setQaCount(c => c + 1);
       }
 
       if (data.audio) {
@@ -475,17 +522,39 @@ export default function PodcastPage() {
           {qaState === 'idle' && !qaAnswer && (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 14, marginBottom: 12 }}>What&apos;s your question?</div>
-              <button
-                onClick={startQaRecording}
-                style={{
-                  width: 56, height: 56, borderRadius: '50%',
-                  background: '#9B8E82', border: 'none', cursor: 'pointer',
-                  color: '#fff', fontSize: 20,
-                }}
-              >
-                {'\uD83C\uDFA4'}
-              </button>
-              <div style={{ fontSize: 12, color: '#6B6B6B', marginTop: 8 }}>Tap to ask</div>
+              <div style={{ display: 'flex', gap: 8, maxWidth: 500, margin: '0 auto' }}>
+                <input
+                  type="text"
+                  placeholder="Type your question..."
+                  value={qaTextInput || ''}
+                  onChange={(e) => setQaTextInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && qaTextInput?.trim()) {
+                      sendQaTextQuestion(qaTextInput.trim());
+                    }
+                  }}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 8,
+                    border: '1px solid #E8E4DA', fontFamily: 'Inter, sans-serif',
+                    fontSize: 14, outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    if (qaTextInput?.trim()) sendQaTextQuestion(qaTextInput.trim());
+                  }}
+                  style={{
+                    padding: '10px 20px', background: '#9B8E82', color: '#fff',
+                    border: 'none', borderRadius: 8, cursor: 'pointer',
+                    fontFamily: 'Inter, sans-serif', fontSize: 14,
+                  }}
+                >
+                  Ask
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: '#6B6B6B', marginTop: 12 }}>
+                or <button onClick={startQaRecording} style={{ background: 'none', border: 'none', color: '#8B6914', cursor: 'pointer', textDecoration: 'underline', fontSize: 12 }}>use your microphone</button>
+              </div>
             </div>
           )}
 
