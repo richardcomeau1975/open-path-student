@@ -144,17 +144,29 @@ export default function PodcastPage() {
     }
   }
 
-  // (#3/#4) Play a random filler clip
-  function playRandomFiller() {
-    if (fillerUrls.length === 0) return Promise.resolve();
-    const filler = fillerUrls[Math.floor(Math.random() * fillerUrls.length)];
-    return new Promise((resolve) => {
-      const audio = new Audio(filler.url);
-      fillerAudioRef.current = audio;
-      audio.onended = () => { fillerAudioRef.current = null; resolve(); };
-      audio.onerror = () => { fillerAudioRef.current = null; resolve(); };
-      audio.play().catch(() => resolve());
-    });
+  // (#3/#4) Play a random filler clip — fetches fresh URLs each time to avoid expiry
+  async function playRandomFiller() {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/api/voice/podcast/filler-urls`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const fillers = data.fillers || [];
+      if (fillers.length === 0) return;
+
+      const filler = fillers[Math.floor(Math.random() * fillers.length)];
+      return new Promise((resolve) => {
+        const audio = new Audio(filler.url);
+        fillerAudioRef.current = audio;
+        audio.onended = () => { fillerAudioRef.current = null; resolve(); };
+        audio.onerror = () => { fillerAudioRef.current = null; resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    } catch (e) {
+      console.error('Filler playback failed:', e);
+    }
   }
 
   async function sendQaQuestion(audioBlob) {
@@ -243,6 +255,10 @@ export default function PodcastPage() {
 
             if (data.type === 'transcript') {
               setQaTranscript(data.text);
+            }
+
+            if (data.type === 'thinking') {
+              // Backend confirmed it's working — filler should be playing
             }
 
             if (data.type === 'answer') {
