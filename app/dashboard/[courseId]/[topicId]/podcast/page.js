@@ -33,6 +33,7 @@ export default function PodcastPage() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const fillerAudioRef = useRef(null); // currently playing filler
+  const qaAudioRef = useRef(null); // currently playing Q&A response audio
 
   const API = process.env.NEXT_PUBLIC_API_URL;
   const MAX_QUESTIONS = 5; // (#7) enforce limit
@@ -206,10 +207,10 @@ export default function PodcastPage() {
         }),
       });
 
-      // Wait for filler to finish before playing response audio
-      await fillerPromise;
+      // Process SSE stream — don't wait for filler, but track when it's done
+      let fillerDone = false;
+      fillerPromise.then(() => { fillerDone = true; });
 
-      // Process SSE stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -257,6 +258,10 @@ export default function PodcastPage() {
             if (data.type === 'audio_chunk') {
               audioQueue.push(data.audio);
               if (!isPlayingAudio) {
+                // Wait for filler to finish before starting response audio
+                if (!fillerDone) {
+                  await fillerPromise;
+                }
                 playNextInQueue();
               }
             }
@@ -319,8 +324,9 @@ export default function PodcastPage() {
       const blob = new Blob([wav], { type: 'audio/wav' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
-      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-      audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+      qaAudioRef.current = audio;
+      audio.onended = () => { qaAudioRef.current = null; URL.revokeObjectURL(url); resolve(); };
+      audio.onerror = () => { qaAudioRef.current = null; URL.revokeObjectURL(url); resolve(); };
       audio.play();
     });
   }
@@ -617,12 +623,38 @@ export default function PodcastPage() {
 
           {qaState === 'speaking' && (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 14, color: '#8B6914', marginBottom: 8 }}>Speaking...</div>
-              {qaAnswer && (
-                <div style={{ fontSize: 14, textAlign: 'left', lineHeight: 1.6, marginTop: 12 }}>
-                  {qaAnswer}
+              <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }`}</style>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+                <div style={{
+                  width: 12, height: 12, borderRadius: '50%',
+                  background: '#8B6914',
+                  animation: 'pulse 1.5s ease-in-out infinite',
+                }} />
+                <div style={{ fontSize: 14, color: '#8B6914' }}>
+                  {qaTranscript ? `Answering: "${qaTranscript.slice(0, 60)}${qaTranscript.length > 60 ? '...' : ''}"` : 'Answering...'}
                 </div>
-              )}
+              </div>
+              <button
+                onClick={() => {
+                  if (qaAudioRef.current) {
+                    qaAudioRef.current.pause();
+                    qaAudioRef.current = null;
+                  }
+                  if (fillerAudioRef.current) {
+                    fillerAudioRef.current.pause();
+                    fillerAudioRef.current = null;
+                  }
+                  setQaState('idle');
+                }}
+                style={{
+                  marginTop: 16, padding: '8px 20px',
+                  background: 'transparent', border: '1px solid #E8E4DA',
+                  borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                  fontFamily: 'Inter, sans-serif', color: '#6B6B6B',
+                }}
+              >
+                Got it — stop
+              </button>
             </div>
           )}
 
