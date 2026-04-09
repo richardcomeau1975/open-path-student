@@ -157,55 +157,29 @@ export default function PodcastPage() {
   }
 
   async function sendQaQuestion(audioBlob) {
-    setQaState('speaking'); // (#4) show speaking immediately — filler is playing
+    setQaState('thinking');
 
     try {
+      // Transcribe audio first
       const arrayBuffer = await audioBlob.arrayBuffer();
-      const base64Audio = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-      // (#4) Start filler immediately AND API call in parallel
-      const fillerPromise = playRandomFiller();
-
       const token = await getToken();
-      const apiPromise = fetch(`${API}/api/voice/podcast/${topicId}/ask`, {
+      const sttResponse = await fetch(`${API}/api/voice/transcribe`, {
         method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          audio: base64Audio,
-          pausedAt: currentTime, // (#1)
-          history: qaHistory, // (#5)
-        }),
-      }).then(r => r.json());
+        headers: { Authorization: `Bearer ${token}` },
+        body: new Uint8Array(arrayBuffer),
+      });
+      const sttData = await sttResponse.json();
 
-      // Wait for BOTH filler to finish AND API to respond
-      const [, data] = await Promise.all([fillerPromise, apiPromise]);
-
-      // Tiny pause after filler before real response
-      await new Promise(r => setTimeout(r, 200));
-
-      setQaTranscript(data.transcript);
-      setQaAnswer(data.answer);
-
-      // (#5) Append to conversation history
-      if (data.transcript && data.answer) {
-        setQaHistory(prev => [...prev,
-          { role: 'user', content: data.transcript },
-          { role: 'assistant', content: data.answer },
-        ]);
-        setQaCount(c => c + 1); // (#7)
-      }
-
-      if (data.audio) {
-        await playAudioBase64(data.audio);
+      if (sttData.transcript?.trim()) {
+        // Use the streaming text Q&A path
+        await sendQaTextQuestion(sttData.transcript.trim());
+      } else {
+        setQaState('idle');
       }
     } catch (err) {
-      console.error('Q&A failed:', err);
+      console.error('Voice Q&A failed:', err);
+      setQaState('idle');
     }
-
-    setQaState('idle');
   }
 
   async function sendQaTextQuestion(question) {
@@ -213,10 +187,13 @@ export default function PodcastPage() {
     setQaTextInput('');
 
     try {
+      // Play filler immediately
       const fillerPromise = playRandomFiller();
 
       const token = await getToken();
-      const apiPromise = fetch(`${API}/api/voice/podcast/${topicId}/ask`, {
+
+      // Use streaming endpoint
+      const response = await fetch(`${API}/api/voice/podcast/${topicId}/ask-stream`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -227,28 +204,81 @@ export default function PodcastPage() {
           pausedAt: currentTime,
           history: qaHistory,
         }),
-      }).then(r => r.json());
+      });
 
-      const [, data] = await Promise.all([fillerPromise, apiPromise]);
-      await new Promise(r => setTimeout(r, 200));
+      // Wait for filler to finish before playing response audio
+      await fillerPromise;
 
-      setQaTranscript(question);
-      setQaAnswer(data.answer);
-      setQaState('speaking');
+      // Process SSE stream
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      const audioQueue = [];
+      let isPlayingAudio = false;
 
-      if (question && data.answer) {
-        setQaHistory(prev => [...prev,
-          { role: 'user', content: question },
-          { role: 'assistant', content: data.answer },
-        ]);
-        setQaCount(c => c + 1);
+      async function playNextInQueue() {
+        if (audioQueue.length === 0) {
+          isPlayingAudio = false;
+          return;
+        }
+        isPlayingAudio = true;
+        const audioData = audioQueue.shift();
+        await playAudioBase64(audioData);
+        playNextInQueue();
       }
 
-      if (data.audio) {
-        await playAudioBase64(data.audio);
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const data = JSON.parse(line.slice(6));
+
+            if (data.type === 'transcript') {
+              setQaTranscript(data.text);
+            }
+
+            if (data.type === 'answer') {
+              setQaAnswer(data.text);
+              setQaState('speaking');
+              setQaHistory(prev => [...prev,
+                { role: 'user', content: question },
+                { role: 'assistant', content: data.text },
+              ]);
+              setQaCount(c => c + 1);
+            }
+
+            if (data.type === 'audio_chunk') {
+              audioQueue.push(data.audio);
+              if (!isPlayingAudio) {
+                playNextInQueue();
+              }
+            }
+
+            if (data.type === 'done') {
+              const waitForAudio = () => new Promise((resolve) => {
+                const check = setInterval(() => {
+                  if (!isPlayingAudio && audioQueue.length === 0) {
+                    clearInterval(check);
+                    resolve();
+                  }
+                }, 200);
+              });
+              await waitForAudio();
+            }
+          } catch (e) {
+            // skip malformed lines
+          }
+        }
       }
     } catch (err) {
-      console.error('Q&A failed:', err);
+      console.error('Q&A stream failed:', err);
     }
 
     setQaState('idle');
