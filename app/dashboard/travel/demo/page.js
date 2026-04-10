@@ -183,15 +183,15 @@ export default function TravelDemoPage() {
 
         {/* Title */}
         <div style={{ marginBottom: 16, borderBottom: '1px solid #222', paddingBottom: 12 }}>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#fff' }}>Travel Advisor Demo</h1>
-          <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Caribbean destination intelligence — Jamaica, Antigua, Barbados, Trinidad & Tobago</p>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#fff' }}>SAM — Destination Intelligence</h1>
+          <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Caribbean destination briefings for travel advisors</p>
         </div>
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 16 }}>
           {messages.length === 0 && !isLoading && (
             <div style={{ color: '#666', fontSize: 14, textAlign: 'center', marginTop: 80 }}>
-              Ask me anything about Caribbean travel — who's going, when, what matters to you.
+              Ask me about a destination, a client scenario, property status, or anything you need for a call.
             </div>
           )}
 
@@ -275,7 +275,7 @@ export default function TravelDemoPage() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about Caribbean destinations..."
+            placeholder="Client wants a honeymoon in December..."
             disabled={isLoading}
             style={{
               flex: 1, padding: '10px 14px', borderRadius: 8,
