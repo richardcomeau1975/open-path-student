@@ -6,6 +6,7 @@ import { useAuth } from "@clerk/nextjs";
 import { apiFetch } from "../../../../../lib/api";
 import { useAdmin } from "../../../../../lib/admin";
 import AdminToolbar from "../../../../../components/AdminToolbar";
+import gsap from "gsap";
 
 export default function PodcastPage() {
   const { courseId, topicId } = useParams();
@@ -34,6 +35,9 @@ export default function PodcastPage() {
   const audioChunksRef = useRef([]);
   const fillerAudioRef = useRef(null); // currently playing filler
   const qaAudioRef = useRef(null); // currently playing Q&A response audio
+  const [currentAnchor, setCurrentAnchor] = useState(null);
+  const [imageOpacity, setImageOpacity] = useState(1.0);
+  const anchorTextRef = useRef(null);
 
   const API = process.env.NEXT_PUBLIC_API_URL;
   const MAX_QUESTIONS = 5; // (#7) enforce limit
@@ -52,6 +56,44 @@ export default function PodcastPage() {
     };
     fetchContent();
   }, [topicId, getToken, refreshKey]);
+
+  // Anchor text sync with lecture timestamps
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !content?.lecture_timestamps?.anchors) return;
+    const anchors = content.lecture_timestamps.anchors;
+
+    const onTimeUpdate = () => {
+      const t = audio.currentTime;
+      if (t > 0.5 && imageOpacity > 0.15) setImageOpacity(0.15);
+
+      const active = anchors.find(a => t >= a.start_time - 0.3 && t <= a.end_time + 1.5);
+      if (active && active.text !== currentAnchor) {
+        if (anchorTextRef.current) {
+          gsap.to(anchorTextRef.current, {
+            opacity: 0, y: -8, duration: 0.3,
+            onComplete: () => {
+              setCurrentAnchor(active.text);
+              gsap.fromTo(anchorTextRef.current, { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' });
+            }
+          });
+        } else {
+          setCurrentAnchor(active.text);
+        }
+      } else if (!active && currentAnchor) {
+        if (anchorTextRef.current) {
+          gsap.to(anchorTextRef.current, { opacity: 0, duration: 0.8, onComplete: () => setCurrentAnchor(null) });
+        }
+      }
+    };
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    return () => audio.removeEventListener('timeupdate', onTimeUpdate);
+  }, [content, currentAnchor, imageOpacity]);
+
+  useEffect(() => {
+    if (!playing) setTimeout(() => { if (!playing) setImageOpacity(1.0); }, 2000);
+  }, [playing]);
 
   // (#3) Load filler audio URLs on mount
   useEffect(() => {
@@ -478,6 +520,35 @@ export default function PodcastPage() {
           {content.name || "Podcast"}
         </h1>
       </div>
+
+      {/* Lecture visual zone — image wash + anchor text */}
+      {content?.lecture_timestamps?.anchors && (
+        <div style={{
+          background: '#FDFBF5', borderRadius: 16, border: '1px solid #E8E4DA',
+          minHeight: 360, position: 'relative', overflow: 'hidden', marginBottom: 20,
+        }}>
+          {content?.visual_overview_images?.[0]?.url && (
+            <img src={content.visual_overview_images[0].url} alt=""
+              style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                objectFit: 'cover', opacity: imageOpacity, transition: 'opacity 2s ease', borderRadius: 16,
+              }} />
+          )}
+          <div style={{
+            position: 'relative', zIndex: 2, display: 'flex', alignItems: 'center',
+            justifyContent: 'center', minHeight: 360, padding: '40px 48px',
+          }}>
+            {currentAnchor && (
+              <p ref={anchorTextRef} style={{
+                fontSize: 28, fontFamily: "'Lora', serif", fontWeight: 600,
+                color: '#1a1a1a', textAlign: 'center', lineHeight: 1.35, margin: 0,
+              }}>
+                {currentAnchor}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Hidden audio element */}
       <audio
