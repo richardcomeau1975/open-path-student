@@ -198,14 +198,13 @@ export default function PodcastPage() {
   async function sendQaTextQuestion(question) {
     setQaState('thinking');
     setQaTextInput('');
+    setQaAnswer(null);
 
     try {
-      // Play filler immediately
+      // Play filler immediately — fetch fresh URLs
       const fillerPromise = playRandomFiller();
 
       const token = await getToken();
-
-      // Use streaming endpoint
       const response = await fetch(`${API}/api/voice/podcast/${topicId}/ask-stream`, {
         method: 'POST',
         headers: {
@@ -219,15 +218,16 @@ export default function PodcastPage() {
         }),
       });
 
-      // Process SSE stream — don't wait for filler, but track when it's done
-      let fillerDone = false;
-      fillerPromise.then(() => { fillerDone = true; });
-
+      // Process SSE stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
       const audioQueue = [];
       let isPlayingAudio = false;
+      let fillerDone = false;
+      let fullAnswer = '';
+
+      fillerPromise.then(() => { fillerDone = true; });
 
       async function playNextInQueue() {
         if (audioQueue.length === 0) {
@@ -235,8 +235,8 @@ export default function PodcastPage() {
           return;
         }
         isPlayingAudio = true;
-        const audioData = audioQueue.shift();
-        await playAudioBase64(audioData);
+        const item = audioQueue.shift();
+        await playAudioBase64(item.audio, item.format);
         playNextInQueue();
       }
 
@@ -258,12 +258,25 @@ export default function PodcastPage() {
             }
 
             if (data.type === 'thinking') {
-              // Backend confirmed it's working — filler should be playing
+              // Filler is covering this
+            }
+
+            if (data.type === 'text_chunk') {
+              // Text arrives progressively — switch to speaking on first chunk
+              setQaState('speaking');
+            }
+
+            if (data.type === 'audio_chunk') {
+              audioQueue.push({ audio: data.audio, format: data.format || 'pcm' });
+              if (!isPlayingAudio) {
+                if (!fillerDone) await fillerPromise;
+                playNextInQueue();
+              }
             }
 
             if (data.type === 'answer') {
+              fullAnswer = data.text;
               setQaAnswer(data.text);
-              setQaState('speaking');
               setQaHistory(prev => [...prev,
                 { role: 'user', content: question },
                 { role: 'assistant', content: data.text },
@@ -271,22 +284,12 @@ export default function PodcastPage() {
               setQaCount(c => c + 1);
             }
 
-            if (data.type === 'audio_chunk') {
-              audioQueue.push(data.audio);
-              if (!isPlayingAudio) {
-                // Wait for filler to finish before starting response audio
-                if (!fillerDone) {
-                  await fillerPromise;
-                }
-                playNextInQueue();
-              }
-            }
-
             if (data.type === 'done') {
-              const waitForAudio = () => new Promise((resolve) => {
-                const check = setInterval(() => {
-                  if (!isPlayingAudio && audioQueue.length === 0) {
-                    clearInterval(check);
+              if (isPlayingAudio || audioQueue.length > 0) {
+                await new Promise((resolve) => {
+                  const check = setInterval(() => {
+                    if (!isPlayingAudio && audioQueue.length === 0) {
+                      clearInterval(check);
                     resolve();
                   }
                 }, 200);
@@ -305,45 +308,50 @@ export default function PodcastPage() {
     setQaState('idle');
   }
 
-  async function playAudioBase64(base64PCM) {
+  async function playAudioBase64(base64Audio, format = 'pcm') {
     return new Promise((resolve) => {
-      const binaryString = atob(base64PCM);
+      const binaryString = atob(base64Audio);
       const bytes = new Uint8Array(binaryString.length);
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
 
-      const sampleRate = 24000;
-      const dataSize = bytes.length;
-      const header = new ArrayBuffer(44);
-      const view = new DataView(header);
+      let blob;
+      if (format === 'mp3') {
+        // MP3 from Inworld — browser plays directly
+        blob = new Blob([bytes], { type: 'audio/mpeg' });
+      } else {
+        // Raw PCM — build WAV header (legacy Gemini path)
+        const sampleRate = 24000;
+        const dataSize = bytes.length;
+        const header = new ArrayBuffer(44);
+        const view = new DataView(header);
+        function ws(v, o, s) { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
+        ws(view, 0, 'RIFF');
+        view.setUint32(4, 36 + dataSize, true);
+        ws(view, 8, 'WAVE');
+        ws(view, 12, 'fmt ');
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        ws(view, 36, 'data');
+        view.setUint32(40, dataSize, true);
+        const wav = new Uint8Array(44 + dataSize);
+        wav.set(new Uint8Array(header), 0);
+        wav.set(bytes, 44);
+        blob = new Blob([wav], { type: 'audio/wav' });
+      }
 
-      function ws(v, o, s) { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
-      ws(view, 0, 'RIFF');
-      view.setUint32(4, 36 + dataSize, true);
-      ws(view, 8, 'WAVE');
-      ws(view, 12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      ws(view, 36, 'data');
-      view.setUint32(40, dataSize, true);
-
-      const wav = new Uint8Array(44 + dataSize);
-      wav.set(new Uint8Array(header), 0);
-      wav.set(bytes, 44);
-
-      const blob = new Blob([wav], { type: 'audio/wav' });
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       qaAudioRef.current = audio;
       audio.onended = () => { qaAudioRef.current = null; URL.revokeObjectURL(url); resolve(); };
       audio.onerror = () => { qaAudioRef.current = null; URL.revokeObjectURL(url); resolve(); };
-      audio.play();
+      audio.play().catch(() => resolve());
     });
   }
 
