@@ -21,7 +21,7 @@ export default function VisualOverviewPage() {
   const [playing, setPlaying] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
   const audioRef = useRef(null);
-  const textRef = useRef(null);
+  const slideRef = useRef(null);
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -38,26 +38,21 @@ export default function VisualOverviewPage() {
     fetchContent();
   }, [topicId, getToken, refreshKey]);
 
-  // Get slides from the visual overview data
   const slides = content?.visual_overview_slides || [];
+  const images = content?.visual_overview_images || [];
   const audioSegments = content?.visual_overview_audio || [];
 
-  // GSAP fade transition when slide changes
+  // Count slides from whichever source has data
+  const slideCount = Math.max(slides.length, images.length);
+
+  // GSAP fade transition on slide change
   useEffect(() => {
-    if (textRef.current && slides.length > 0) {
-      gsap.to(textRef.current, {
-        opacity: 0,
-        y: 10,
-        duration: 0.4,
-        ease: "power2.in",
-        onComplete: () => {
-          gsap.fromTo(
-            textRef.current,
-            { opacity: 0, y: -10 },
-            { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }
-          );
-        },
-      });
+    if (slideRef.current && slideCount > 0) {
+      gsap.fromTo(
+        slideRef.current,
+        { opacity: 0, y: 8 },
+        { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }
+      );
     }
   }, [currentSlide]);
 
@@ -73,11 +68,23 @@ export default function VisualOverviewPage() {
   };
 
   const handleAudioEnded = () => {
-    if (currentSlide < slides.length - 1) {
-      setTimeout(() => {
+    if (currentSlide < slideCount - 1) {
+      // Fade out, then advance
+      if (slideRef.current) {
+        gsap.to(slideRef.current, {
+          opacity: 0,
+          y: -8,
+          duration: 0.4,
+          ease: "power2.in",
+          onComplete: () => {
+            setCurrentSlide((prev) => prev + 1);
+            setAudioProgress(0);
+          },
+        });
+      } else {
         setCurrentSlide((prev) => prev + 1);
         setAudioProgress(0);
-      }, 800);
+      }
     } else {
       setPlaying(false);
     }
@@ -89,24 +96,34 @@ export default function VisualOverviewPage() {
     }
   };
 
-  // Auto-play next slide's audio when slide changes
+  // Auto-play next audio when slide changes
   useEffect(() => {
     if (playing && audioRef.current && audioSegments[currentSlide]) {
       audioRef.current.load();
-      audioRef.current.play().catch(() => {});
+      setTimeout(() => {
+        audioRef.current.play().catch(() => {});
+      }, 300); // Small delay for GSAP fade-in
     }
   }, [currentSlide]);
 
   const goToSlide = (index) => {
-    setCurrentSlide(index);
-    setAudioProgress(0);
-    if (audioRef.current) {
-      audioRef.current.load();
-      if (playing) {
-        setTimeout(() => {
-          audioRef.current.play().catch(() => {});
-        }, 600);
-      }
+    if (slideRef.current) {
+      gsap.to(slideRef.current, {
+        opacity: 0,
+        duration: 0.3,
+        onComplete: () => {
+          setCurrentSlide(index);
+          setAudioProgress(0);
+          if (audioRef.current) {
+            audioRef.current.load();
+            if (playing) {
+              setTimeout(() => audioRef.current.play().catch(() => {}), 300);
+            }
+          }
+        },
+      });
+    } else {
+      setCurrentSlide(index);
     }
   };
 
@@ -118,8 +135,6 @@ export default function VisualOverviewPage() {
     );
   }
 
-  const slideCount = slides.length || (content?.visual_overview_images || []).length;
-
   if (!slideCount) {
     return (
       <div style={{ padding: "24px 32px", maxWidth: "1000px", margin: "0 auto" }}>
@@ -129,7 +144,10 @@ export default function VisualOverviewPage() {
         {isAdmin && (
           <>
             <AdminToolbar topicId={topicId} outputType="visual_overview_script" label="VO Script"
-              showTestPrompt={true} downstreamLabel="Generate narration ↓" accept=".json,.txt,.md,.yaml,.yml"
+              showTestPrompt={true} downstreamLabel="Generate images + narration ↓" accept=".json,.txt,.md,.yaml,.yml"
+              onRefresh={() => setRefreshKey(k => k + 1)} />
+            <AdminToolbar topicId={topicId} outputType="visual_overview_images" label="VO Images"
+              showTestPrompt={false} downstreamLabel={null} accept="image/*"
               onRefresh={() => setRefreshKey(k => k + 1)} />
             <AdminToolbar topicId={topicId} outputType="narration_audio" label="Narration Audio"
               showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"
@@ -143,7 +161,8 @@ export default function VisualOverviewPage() {
     );
   }
 
-  const currentAnchorText = slides[currentSlide]?.anchor_text || `Section ${currentSlide + 1}`;
+  const currentAnchorText = slides[currentSlide]?.anchor_text || "";
+  const currentImage = images[currentSlide]?.url;
 
   return (
     <div style={{ padding: "24px 32px", maxWidth: "1000px", margin: "0 auto" }}>
@@ -154,7 +173,10 @@ export default function VisualOverviewPage() {
       {isAdmin && (
         <>
           <AdminToolbar topicId={topicId} outputType="visual_overview_script" label="VO Script"
-            showTestPrompt={true} downstreamLabel="Generate narration ↓" accept=".json,.txt,.md,.yaml,.yml"
+            showTestPrompt={true} downstreamLabel="Generate images + narration ↓" accept=".json,.txt,.md,.yaml,.yml"
+            onRefresh={() => setRefreshKey(k => k + 1)} />
+          <AdminToolbar topicId={topicId} outputType="visual_overview_images" label="VO Images"
+            showTestPrompt={false} downstreamLabel={null} accept="image/*"
             onRefresh={() => setRefreshKey(k => k + 1)} />
           <AdminToolbar topicId={topicId} outputType="narration_audio" label="Narration Audio"
             showTestPrompt={false} downstreamLabel={null} accept=".mp3,.wav"
@@ -182,45 +204,55 @@ export default function VisualOverviewPage() {
         </h1>
       </div>
 
-      {/* Typography card — anchor text is the visual */}
-      <div style={{
-        background: "#FDFBF5",
-        borderRadius: 16,
-        border: "1px solid #E8E4DA",
-        minHeight: "340px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "60px 48px",
-        position: "relative",
-        overflow: "hidden",
-      }}>
-        {/* Subtle slide number */}
-        <div style={{
-          position: "absolute",
-          top: 20,
-          right: 24,
-          fontSize: 12,
-          color: "#C4B89C",
-          fontFamily: "Inter, sans-serif",
-        }}>
-          {currentSlide + 1} / {slideCount}
-        </div>
-
-        {/* The anchor text — the star of the show */}
-        <div ref={textRef} style={{ textAlign: "center", maxWidth: "680px" }}>
-          <p style={{
-            fontSize: "32px",
-            fontFamily: "'Lora', serif",
-            fontWeight: 600,
-            color: "#1a1a1a",
-            lineHeight: 1.35,
-            margin: 0,
-            letterSpacing: "-0.01em",
+      {/* Slide card with GSAP transitions */}
+      <div
+        ref={slideRef}
+        style={{
+          background: "#FDFBF5",
+          borderRadius: 16,
+          overflow: "hidden",
+          border: "1px solid #E8E4DA",
+        }}
+      >
+        {/* Anchor text */}
+        {currentAnchorText && (
+          <div style={{
+            padding: "32px 36px 20px",
+            textAlign: "center",
           }}>
-            {currentAnchorText}
-          </p>
-        </div>
+            <p style={{
+              fontSize: "24px",
+              fontFamily: "'Lora', serif",
+              fontWeight: 600,
+              fontStyle: "italic",
+              color: "#1a1a1a",
+              lineHeight: 1.35,
+              margin: 0,
+            }}>
+              {currentAnchorText}
+            </p>
+          </div>
+        )}
+
+        {/* Image */}
+        {currentImage && (
+          <div style={{ padding: "0 20px 20px" }}>
+            <img
+              src={currentImage}
+              alt={currentAnchorText || `Slide ${currentSlide + 1}`}
+              style={{
+                width: "100%",
+                borderRadius: 10,
+                display: "block",
+              }}
+            />
+          </div>
+        )}
+
+        {/* If no image but has text, add bottom padding */}
+        {!currentImage && currentAnchorText && (
+          <div style={{ paddingBottom: "40px" }} />
+        )}
       </div>
 
       {/* Audio element (hidden) */}
@@ -233,7 +265,7 @@ export default function VisualOverviewPage() {
         />
       )}
 
-      {/* Controls — play/pause + progress */}
+      {/* Controls */}
       <div style={{
         marginTop: "20px",
         background: "#ffffff",
@@ -242,7 +274,6 @@ export default function VisualOverviewPage() {
         padding: "16px 20px",
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-          {/* Play/Pause */}
           <button
             onClick={handlePlayPause}
             style={{
@@ -263,7 +294,6 @@ export default function VisualOverviewPage() {
             {playing ? "\u275A\u275A" : "\u25B6"}
           </button>
 
-          {/* Progress bar */}
           <div style={{ flex: 1 }}>
             <div style={{
               height: "6px",
@@ -280,6 +310,15 @@ export default function VisualOverviewPage() {
               }} />
             </div>
           </div>
+
+          <span style={{
+            fontSize: "14px",
+            color: "#6B6B6B",
+            fontFamily: "Inter, sans-serif",
+            whiteSpace: "nowrap",
+          }}>
+            {currentSlide + 1} / {slideCount}
+          </span>
         </div>
 
         {/* Slide dots */}
