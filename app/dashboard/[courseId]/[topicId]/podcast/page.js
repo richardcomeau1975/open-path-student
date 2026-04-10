@@ -290,12 +290,13 @@ export default function PodcastPage() {
                   const check = setInterval(() => {
                     if (!isPlayingAudio && audioQueue.length === 0) {
                       clearInterval(check);
-                    resolve();
-                  }
-                }, 200);
-              });
-              await waitForAudio();
+                      resolve();
+                    }
+                  }, 200);
+                });
+              }
             }
+
           } catch (e) {
             // skip malformed lines
           }
