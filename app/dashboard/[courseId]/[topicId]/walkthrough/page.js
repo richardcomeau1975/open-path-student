@@ -234,43 +234,11 @@ export default function WalkthroughPage() {
     setMicState('idle');
   }
 
-  async function playAudioBase64(base64PCM) {
+  async function playAudioBase64(base64Audio) {
     return new Promise((resolve) => {
-      const binaryString = atob(base64PCM);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-
-      const sampleRate = 24000;
-      const dataSize = bytes.length;
-      const header = new ArrayBuffer(44);
-      const view = new DataView(header);
-
-      function ws(v, o, s) { for (let i = 0; i < s.length; i++) v.setUint8(o + i, s.charCodeAt(i)); }
-      ws(view, 0, 'RIFF');
-      view.setUint32(4, 36 + dataSize, true);
-      ws(view, 8, 'WAVE');
-      ws(view, 12, 'fmt ');
-      view.setUint32(16, 16, true);
-      view.setUint16(20, 1, true);
-      view.setUint16(22, 1, true);
-      view.setUint32(24, sampleRate, true);
-      view.setUint32(28, sampleRate * 2, true);
-      view.setUint16(32, 2, true);
-      view.setUint16(34, 16, true);
-      ws(view, 36, 'data');
-      view.setUint32(40, dataSize, true);
-
-      const wav = new Uint8Array(44 + dataSize);
-      wav.set(new Uint8Array(header), 0);
-      wav.set(bytes, 44);
-
-      const blob = new Blob([wav], { type: 'audio/wav' });
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-      audio.onended = () => { URL.revokeObjectURL(url); resolve(); };
-      audio.onerror = () => { URL.revokeObjectURL(url); resolve(); };
+      const audio = new Audio(`data:audio/mp3;base64,${base64Audio}`);
+      audio.onended = () => resolve();
+      audio.onerror = () => resolve();
       audio.play();
     });
   }
