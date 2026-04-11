@@ -31,7 +31,7 @@ export default function TravelRealtimePage() {
     setStatus('connecting');
 
     const token = await getToken();
-    const ws = new WebSocket(`${WS_URL}/api/travel-realtime/realtime`);
+    const ws = new WebSocket(`${WS_URL}/api/travel-realtime/realtime?token=${token}`);
     wsRef.current = ws;
 
     // Set up AudioContext for playback at 24kHz
