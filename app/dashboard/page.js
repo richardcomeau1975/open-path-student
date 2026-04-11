@@ -107,24 +107,8 @@ export default function CoursesPage() {
               width: 280,
             }}
           >
-            <div style={{ fontSize: 15, fontWeight: 600 }}>SAM — Text + Voice</div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Type or record, streamed response</div>
-          </Link>
-          <Link
-            href="/dashboard/travel/realtime"
-            style={{
-              display: 'block',
-              padding: '16px 20px',
-              borderRadius: 12,
-              background: '#111',
-              border: '1px solid #2a2a2a',
-              color: '#e5e5e5',
-              textDecoration: 'none',
-              width: 280,
-            }}
-          >
-            <div style={{ fontSize: 15, fontWeight: 600 }}>SAM — Real-time Voice</div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Live conversation, always listening</div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>SAM — Travel Advisor</div>
+            <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Caribbean destination intelligence</div>
           </Link>
         </div>
       </div>
