@@ -5,15 +5,11 @@ import { useAdmin } from "../lib/admin";
 
 const FEATURE_ROUTES = {
   visual_overview: "visual-overview",
-  podcast: "podcast",
+  lectures: "lectures",
   walkthrough: "walkthrough",
   note_chart: "notechart",
   test_me: "test-me",
   how_tested: "how-tested",
-};
-
-const CARD_LABELS = {
-  note_chart: "Active Recall",
 };
 
 export default function FeatureCard({ feature }) {
@@ -30,7 +26,7 @@ export default function FeatureCard({ feature }) {
     }
   };
 
-  const label = CARD_LABELS[feature.key] || feature.name;
+  const label = feature.name;
 
   return (
     <div
