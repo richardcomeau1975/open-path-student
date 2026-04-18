@@ -4,16 +4,20 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { apiFetch } from '../../../../../lib/api';
+import { useAdmin } from '../../../../../lib/admin';
 import Header from '../../../../../components/Header';
 import BackButton from '../../../../../components/BackButton';
+import AdminToolbar from '../../../../../components/AdminToolbar';
 
 export default function LecturesPage() {
   const { courseId, topicId } = useParams();
   const router = useRouter();
   const { getToken, isLoaded } = useAuth();
+  const { isAdmin } = useAdmin();
   const [segments, setSegments] = useState(null);
   const [topicName, setTopicName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -29,7 +33,7 @@ export default function LecturesPage() {
       setLoading(false);
     }
     load();
-  }, [topicId, getToken, isLoaded]);
+  }, [topicId, getToken, isLoaded, refreshKey]);
 
   if (loading) {
     return (
@@ -67,10 +71,31 @@ export default function LecturesPage() {
           Lectures
         </h1>
         {segments && (
-          <p style={{ color: '#888', fontSize: 14, marginBottom: 32 }}>
+          <p style={{ color: '#888', fontSize: 14, marginBottom: 24 }}>
             {segments.length} segment{segments.length !== 1 ? 's' : ''}
             {totalDuration > 0 ? ` · ${formatDuration(totalDuration)} total` : ''}
           </p>
+        )}
+
+        {isAdmin && (
+          <div style={{ marginBottom: 24 }}>
+            <AdminToolbar
+              topicId={topicId}
+              outputType="podcast_script"
+              label="Lecture Script"
+              showTestPrompt={true}
+              downstreamLabel="Regenerate script + segments + audio + images ↓"
+              accept=".txt,.md"
+              onRefresh={() => setRefreshKey(k => k + 1)}
+            />
+            <AdminToolbar
+              topicId={topicId}
+              outputType="podcast_audio"
+              label="Lecture Audio (all segments)"
+              accept=".wav,.mp3"
+              onRefresh={() => setRefreshKey(k => k + 1)}
+            />
+          </div>
         )}
 
         {!segments ? (
