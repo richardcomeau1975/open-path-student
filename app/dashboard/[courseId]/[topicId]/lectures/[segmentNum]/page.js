@@ -24,21 +24,29 @@ export default function LecturePlayerPage() {
   const [audioFinished, setAudioFinished] = useState(false);
 
   // Q&A state
-  const [qaMode, setQaMode] = useState(false);
   const [qaInput, setQaInput] = useState('');
-  const [qaLoading, setQaLoading] = useState(false);
+  const [qaState, setQaState] = useState('idle'); // 'idle' | 'recording' | 'thinking' | 'speaking'
   const [qaResponse, setQaResponse] = useState('');
   const [qaCount, setQaCount] = useState(0);
   const MAX_QUESTIONS = 5;
 
-  // Audio queue for Q&A TTS
+  // Audio queue for Q&A TTS (Ashley response chunks)
   const audioQueueRef = useRef([]);
   const isPlayingQaRef = useRef(false);
   const qaAudioRef = useRef(null);
 
+  // Filler audio during "thinking"
+  const fillerAudioRef = useRef(null);
+
+  // Voice recording
+  const mediaRecorderRef = useRef(null);
+  const audioChunksRef = useRef([]);
+
   const audioRef = useRef(null);
   const imageRef = useRef(null);
   const anchorRef = useRef(null);
+
+  const qaLoading = qaState !== 'idle';
 
   // Load content
   useEffect(() => {
@@ -141,13 +149,46 @@ export default function LecturePlayerPage() {
 
   const enqueueQaAudio = useCallback((b64) => {
     audioQueueRef.current.push(b64);
-    if (!isPlayingQaRef.current) playNextQaChunk();
+    if (!isPlayingQaRef.current) {
+      // First real chunk arriving — stop any playing filler immediately
+      if (fillerAudioRef.current) {
+        try { fillerAudioRef.current.pause(); } catch {}
+        fillerAudioRef.current = null;
+      }
+      setQaState('speaking');
+      playNextQaChunk();
+    }
   }, [playNextQaChunk]);
 
-  // Q&A submit
-  const sendQuestion = useCallback(async () => {
-    const q = qaInput.trim();
-    if (!q || qaLoading || qaCount >= MAX_QUESTIONS) return;
+  // Play a random filler clip during "thinking". Fetches fresh URLs each call.
+  const playRandomFiller = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/api/voice/podcast/filler-urls`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const fillers = data.fillers || [];
+      if (fillers.length === 0) return;
+
+      const filler = fillers[Math.floor(Math.random() * fillers.length)];
+      return new Promise((resolve) => {
+        const audio = new Audio(filler.url);
+        fillerAudioRef.current = audio;
+        audio.onended = () => { fillerAudioRef.current = null; resolve(); };
+        audio.onerror = () => { fillerAudioRef.current = null; resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    } catch (e) {
+      console.error('Filler playback failed:', e);
+    }
+  }, [getToken]);
+
+  // Submit a question text to /ask-stream with filler bridge + streaming audio.
+  const submitQuestionText = useCallback(async (question) => {
+    const q = question.trim();
+    if (!q) return;
 
     // Pause lecture
     if (audioRef.current && playing) {
@@ -155,10 +196,13 @@ export default function LecturePlayerPage() {
       setPlaying(false);
     }
 
-    setQaLoading(true);
+    setQaState('thinking');
     setQaInput('');
     setQaResponse('');
     setQaCount(c => c + 1);
+
+    // Kick off filler in parallel so there's no silence while Claude thinks
+    playRandomFiller();
 
     const token = await getToken();
 
@@ -207,8 +251,82 @@ export default function LecturePlayerPage() {
       setQaResponse('Sorry, something went wrong.');
     }
 
-    setQaLoading(false);
-  }, [qaInput, qaLoading, qaCount, playing, currentTime, topicId, segmentNum, getToken, enqueueQaAudio]);
+    // If no audio chunks ever arrived, go straight back to idle
+    if (!isPlayingQaRef.current && audioQueueRef.current.length === 0) {
+      setQaState('idle');
+    }
+  }, [playing, currentTime, topicId, segmentNum, getToken, enqueueQaAudio, playRandomFiller]);
+
+  // Text-box submit path
+  const sendQuestion = useCallback(() => {
+    if (qaLoading || qaCount >= MAX_QUESTIONS) return;
+    submitQuestionText(qaInput);
+  }, [qaInput, qaLoading, qaCount, submitQuestionText]);
+
+  // Voice recording path
+  const startRecording = useCallback(async () => {
+    if (qaLoading || qaCount >= MAX_QUESTIONS) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunksRef.current.push(e.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        // Transcribe → then pipe through the same text path so filler + streaming run
+        setQaState('thinking');
+        try {
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const token = await getToken();
+          const sttResponse = await fetch(`${API}/api/voice/transcribe`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: new Uint8Array(arrayBuffer),
+          });
+          const sttData = await sttResponse.json();
+          if (sttData.transcript?.trim()) {
+            await submitQuestionText(sttData.transcript.trim());
+          } else {
+            setQaState('idle');
+          }
+        } catch (err) {
+          console.error('Transcribe failed:', err);
+          setQaState('idle');
+        }
+      };
+
+      mediaRecorder.start();
+      setQaState('recording');
+    } catch (err) {
+      console.error('Mic access denied:', err);
+      setQaState('idle');
+    }
+  }, [qaLoading, qaCount, getToken, submitQuestionText]);
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  }, []);
+
+  // Reset state when the Ashley audio queue fully drains
+  useEffect(() => {
+    if (qaState === 'speaking') {
+      const check = setInterval(() => {
+        if (!isPlayingQaRef.current && audioQueueRef.current.length === 0) {
+          setQaState('idle');
+          clearInterval(check);
+        }
+      }, 300);
+      return () => clearInterval(check);
+    }
+  }, [qaState]);
 
   // Navigate
   const prevSeg = segIdx > 0 ? segIdx : null;
@@ -333,13 +451,39 @@ export default function LecturePlayerPage() {
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {/* Mic button */}
+            <button
+              onClick={qaState === 'recording' ? stopRecording : startRecording}
+              disabled={(qaLoading && qaState !== 'recording') || qaCount >= MAX_QUESTIONS}
+              title={qaState === 'recording' ? 'Stop recording' : 'Ask by voice'}
+              style={{
+                width: 44, height: 44, borderRadius: '50%',
+                border: qaState === 'recording' ? '2px solid #ef4444' : '2px solid #444',
+                background: qaState === 'recording' ? '#991b1b' : '#1a1a1a',
+                color: qaState === 'recording' ? '#fca5a5' : '#888',
+                cursor: qaCount >= MAX_QUESTIONS ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 18, flexShrink: 0,
+                transition: 'all 0.15s',
+              }}
+            >
+              🎤
+            </button>
+
+            {/* Text input */}
             <input
               type="text"
               value={qaInput}
               onChange={e => setQaInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); } }}
-              placeholder={qaCount >= MAX_QUESTIONS ? 'Question limit reached' : 'Ask about what you just heard...'}
+              placeholder={
+                qaCount >= MAX_QUESTIONS ? 'Question limit reached' :
+                qaState === 'recording' ? 'Listening...' :
+                qaState === 'thinking' ? 'Thinking...' :
+                qaState === 'speaking' ? 'Responding...' :
+                'Ask about what you just heard...'
+              }
               disabled={qaLoading || qaCount >= MAX_QUESTIONS}
               style={{
                 flex: 1, padding: '10px 14px', borderRadius: 8,
@@ -347,14 +491,16 @@ export default function LecturePlayerPage() {
                 color: '#e5e5e5', fontSize: 14, outline: 'none',
               }}
             />
+
+            {/* Send button */}
             <button
               onClick={sendQuestion}
               disabled={!qaInput.trim() || qaLoading || qaCount >= MAX_QUESTIONS}
               style={{
                 padding: '10px 16px', borderRadius: 8,
-                background: qaInput.trim() ? '#2563eb' : '#222',
-                color: qaInput.trim() ? '#fff' : '#666',
-                border: 'none', cursor: qaInput.trim() ? 'pointer' : 'default',
+                background: qaInput.trim() && !qaLoading ? '#2563eb' : '#222',
+                color: qaInput.trim() && !qaLoading ? '#fff' : '#666',
+                border: 'none', cursor: qaInput.trim() && !qaLoading ? 'pointer' : 'default',
                 fontSize: 14, fontWeight: 500, flexShrink: 0,
               }}
             >
