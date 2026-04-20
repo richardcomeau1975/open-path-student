@@ -7,7 +7,7 @@ const FEATURE_ROUTES = {
   visual_overview: "visual-overview",
   lectures: "lectures",
   walkthrough: "walkthrough",
-  note_chart: "notechart",
+  notechart: "notechart",
   test_me: "test-me",
   how_tested: "how-tested",
 };
