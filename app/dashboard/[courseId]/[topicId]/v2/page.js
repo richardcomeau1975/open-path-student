@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
-import { apiFetch } from "../../../../lib/api";
-import { useAdmin } from "../../../../lib/admin";
-import FeatureCard from "../../../../components/FeatureCard";
-import BackButton from "../../../../components/BackButton";
-import AdminToolbar from "../../../../components/AdminToolbar";
+import { apiFetch } from "../../../../../lib/api";
+import { useAdmin } from "../../../../../lib/admin";
+import FeatureCard from "../../../../../components/V2FeatureCard";
+import BackButton from "../../../../../components/BackButton";
+import AdminToolbar from "../../../../../components/AdminToolbar";
 
 export default function TopicDashboard() {
   const { courseId, topicId } = useParams();
@@ -53,6 +53,7 @@ export default function TopicDashboard() {
 
   return (
     <div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
       <BackButton href={`/dashboard/${courseId}`} />
       <div style={{ marginBottom: "32px" }}>
         <h1
@@ -97,29 +98,11 @@ export default function TopicDashboard() {
 
       <div style={{ textAlign: "center", marginTop: "1.5rem" }}>
         <span
-          onClick={() => router.push(`/dashboard/${courseId}/${topicId}/progress`)}
+          onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2/progress`)}
           style={{ fontSize: 13, color: "#8B6914", cursor: "pointer", textDecoration: "underline" }}
         >
           View Progress
         </span>
-      </div>
-
-      <div style={{ textAlign: "center", marginTop: "1rem", marginBottom: "1rem" }}>
-        <button
-          onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2`)}
-          style={{
-            padding: "10px 24px",
-            borderRadius: 8,
-            background: "#2563eb",
-            border: "none",
-            color: "#fff",
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: "pointer",
-          }}
-        >
-          Try new experience →
-        </button>
       </div>
     </div>
   );
