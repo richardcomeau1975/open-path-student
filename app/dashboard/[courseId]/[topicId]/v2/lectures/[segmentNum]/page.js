@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { apiFetch } from '../../../../../../../lib/api';
@@ -9,46 +9,57 @@ import BackButton from '../../../../../../../components/BackButton';
 
 const API = process.env.NEXT_PUBLIC_API_URL || '';
 
-export default function LecturePlayerPage() {
+const TABS = [
+  { id: 'listen', label: 'Listen' },
+  { id: 'office-hours', label: 'Office Hours' },
+  { id: 'exit-ticket', label: 'Exit Ticket' },
+  { id: 'notes', label: 'Notes' },
+  { id: 'exam-questions', label: 'Exam-Style Questions' },
+];
+
+export default function SegmentContainerPage() {
   const { courseId, topicId, segmentNum } = useParams();
-  const segIdx = parseInt(segmentNum, 10) - 1;
   const router = useRouter();
   const { getToken, isLoaded } = useAuth();
+  const segIdx = parseInt(segmentNum, 10) - 1;
 
-  const [segments, setSegments] = useState(null);
+  // ── Shared state ──
   const [seg, setSeg] = useState(null);
+  const [totalSegments, setTotalSegments] = useState(null);
+  const [activeTab, setActiveTab] = useState('listen');
+  const [contentLoading, setContentLoading] = useState(true);
+
+  // ── Listen state ──
+  const audioRef = useRef(null);
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [activeAnchor, setActiveAnchor] = useState('');
-  const [audioFinished, setAudioFinished] = useState(false);
 
-  // Q&A state
-  const [qaInput, setQaInput] = useState('');
-  const [qaState, setQaState] = useState('idle'); // 'idle' | 'recording' | 'thinking' | 'speaking'
-  const [qaResponse, setQaResponse] = useState('');
-  const [qaCount, setQaCount] = useState(0);
-  const MAX_QUESTIONS = 5;
+  // ── Office Hours state ──
+  const [ohSession, setOhSession] = useState(null);
+  const [ohMessages, setOhMessages] = useState([]);
+  const [ohInput, setOhInput] = useState('');
+  const [ohStreaming, setOhStreaming] = useState(false);
+  const [ohStreamingText, setOhStreamingText] = useState('');
+  const [ohStarted, setOhStarted] = useState(false);
+  const messagesEndRef = useRef(null);
 
-  // Audio queue for Q&A TTS (Ashley response chunks)
-  const audioQueueRef = useRef([]);
-  const isPlayingQaRef = useRef(false);
-  const qaAudioRef = useRef(null);
+  // ── Notes state ──
+  const [notesQuestions, setNotesQuestions] = useState(null);
+  const [notesLoading, setNotesLoading] = useState(false);
+  const [notesLoaded, setNotesLoaded] = useState(false);
 
-  // Filler audio during "thinking"
-  const fillerAudioRef = useRef(null);
+  // ── Exam-Style Questions state ──
+  const [quizQuestions, setQuizQuestions] = useState(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizLoaded, setQuizLoaded] = useState(false);
+  const [quizIndex, setQuizIndex] = useState(0);
+  const [quizSelected, setQuizSelected] = useState(null);
+  const [quizAnswered, setQuizAnswered] = useState(false);
+  const [quizScore, setQuizScore] = useState(0);
+  const [quizFinished, setQuizFinished] = useState(false);
 
-  // Voice recording
-  const mediaRecorderRef = useRef(null);
-  const audioChunksRef = useRef([]);
-
-  const audioRef = useRef(null);
-  const imageRef = useRef(null);
-  const anchorRef = useRef(null);
-
-  const qaLoading = qaState !== 'idle';
-
-  // Load content
+  // ── Load content ──
   useEffect(() => {
     if (!isLoaded) return;
     async function load() {
@@ -56,68 +67,109 @@ export default function LecturePlayerPage() {
         const token = await getToken();
         const content = await apiFetch(`/api/topics/${topicId}/content`, {}, token);
         const segs = content.lecture_segments || [];
-        setSegments(segs);
+        setTotalSegments(segs.length);
         if (segs[segIdx]) setSeg(segs[segIdx]);
       } catch (err) {
-        console.error('Failed to load lecture:', err);
+        console.error('Failed to load segment content:', err);
       }
+      setContentLoading(false);
     }
     load();
   }, [topicId, segIdx, getToken, isLoaded]);
 
-  // Audio time update — anchor sync
-  const handleTimeUpdate = useCallback(() => {
-    if (!audioRef.current || !seg) return;
-    const t = audioRef.current.currentTime;
-    setCurrentTime(t);
-
-    const anchors = seg.timestamps?.anchors || [];
-    let active = '';
-    for (const a of anchors) {
-      const start = a.start_time || a.time || 0;
-      const end = a.end_time || (start + 5);
-      if (t >= start - 0.3 && t <= end + 1.5) {
-        active = a.text;
-        break;
-      }
-    }
-
-    if (active !== activeAnchor) {
-      // GSAP-style fade
-      if (anchorRef.current) {
-        anchorRef.current.style.transition = 'opacity 0.3s, transform 0.3s';
-        anchorRef.current.style.opacity = '0';
-        anchorRef.current.style.transform = 'translateY(-8px)';
-        setTimeout(() => {
-          setActiveAnchor(active);
-          if (anchorRef.current && active) {
-            anchorRef.current.style.transform = 'translateY(10px)';
-            requestAnimationFrame(() => {
-              if (anchorRef.current) {
-                anchorRef.current.style.opacity = '1';
-                anchorRef.current.style.transform = 'translateY(0)';
-              }
-            });
+  // ── Office Hours: start session lazily ──
+  useEffect(() => {
+    if (activeTab !== 'office-hours' || ohStarted || !isLoaded) return;
+    setOhStarted(true);
+    async function startSession() {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${API}/api/walkthrough/${topicId}/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            mode: 'segment_tutorial',
+            segment_number: parseInt(segmentNum, 10),
+          }),
+        });
+        const data = await res.json();
+        if (data.session) {
+          setOhSession(data.session);
+          setOhMessages(data.session.messages || []);
+          if (!data.session.messages || data.session.messages.length === 0) {
+            ohSendMessage('Begin', data.session.id, token);
           }
-        }, 300);
-      } else {
-        setActiveAnchor(active);
+        }
+      } catch (err) {
+        console.error('Failed to start Office Hours session:', err);
       }
     }
-  }, [seg, activeAnchor]);
+    startSession();
+  }, [activeTab, isLoaded]);
 
-  // Play/pause
+  // ── Office Hours: scroll to bottom ──
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [ohMessages, ohStreamingText]);
+
+  // ── Notes: load lazily ──
+  useEffect(() => {
+    if (activeTab !== 'notes' || notesLoaded || !isLoaded) return;
+    setNotesLoaded(true);
+    setNotesLoading(true);
+    async function loadNotes() {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${API}/api/topics/${topicId}/notechart/questions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setNotesQuestions(data.questions || []);
+        }
+      } catch (err) {
+        console.error('Failed to load notes:', err);
+      }
+      setNotesLoading(false);
+    }
+    loadNotes();
+  }, [activeTab, isLoaded]);
+
+  // ── Exam-Style Questions: load lazily ──
+  useEffect(() => {
+    if (activeTab !== 'exam-questions' || quizLoaded || !isLoaded) return;
+    setQuizLoaded(true);
+    setQuizLoading(true);
+    async function loadQuiz() {
+      try {
+        const token = await getToken();
+        const res = await fetch(`${API}/api/topics/${topicId}/quiz`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setQuizQuestions(data.questions || []);
+        }
+      } catch (err) {
+        console.error('Failed to load quiz:', err);
+      }
+      setQuizLoading(false);
+    }
+    loadQuiz();
+  }, [activeTab, isLoaded]);
+
+  // ── Listen helpers ──
   const togglePlay = () => {
     if (!audioRef.current) return;
-    if (playing) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play();
-    }
+    if (playing) { audioRef.current.pause(); } else { audioRef.current.play(); }
     setPlaying(!playing);
   };
 
-  // Progress bar click
+  const handleTimeUpdate = useCallback(() => {
+    if (!audioRef.current) return;
+    setCurrentTime(audioRef.current.currentTime);
+  }, []);
+
   const handleProgressClick = (e) => {
     if (!audioRef.current || !duration) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -125,103 +177,41 @@ export default function LecturePlayerPage() {
     audioRef.current.currentTime = pct * duration;
   };
 
-  // Format time
   const fmt = (s) => {
     const m = Math.floor(s / 60);
     const sec = Math.floor(s % 60);
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  // Q&A audio queue
-  const playNextQaChunk = useCallback(() => {
-    if (audioQueueRef.current.length === 0) {
-      isPlayingQaRef.current = false;
-      return;
-    }
-    isPlayingQaRef.current = true;
-    const b64 = audioQueueRef.current.shift();
-    const audio = new Audio(`data:audio/mp3;base64,${b64}`);
-    qaAudioRef.current = audio;
-    audio.onended = () => playNextQaChunk();
-    audio.onerror = () => playNextQaChunk();
-    audio.play().catch(() => playNextQaChunk());
-  }, []);
+  // ── Office Hours: send message (SSE streaming) ──
+  async function ohSendMessage(text, sessionId, tokenOverride) {
+    const msg = text || ohInput.trim();
+    if (!msg || ohStreaming) return;
 
-  const enqueueQaAudio = useCallback((b64) => {
-    audioQueueRef.current.push(b64);
-    if (!isPlayingQaRef.current) {
-      // First real chunk arriving — stop any playing filler immediately
-      if (fillerAudioRef.current) {
-        try { fillerAudioRef.current.pause(); } catch {}
-        fillerAudioRef.current = null;
-      }
-      setQaState('speaking');
-      playNextQaChunk();
-    }
-  }, [playNextQaChunk]);
+    const sid = sessionId || ohSession?.id;
+    if (!sid) return;
 
-  // Play a random filler clip during "thinking". Fetches fresh URLs each call.
-  const playRandomFiller = useCallback(async () => {
-    try {
-      const token = await getToken();
-      const res = await fetch(`${API}/api/voice/podcast/filler-urls`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) return;
-      const data = await res.json();
-      const fillers = data.fillers || [];
-      if (fillers.length === 0) return;
+    setOhStreaming(true);
+    setOhInput('');
+    setOhStreamingText('');
 
-      const filler = fillers[Math.floor(Math.random() * fillers.length)];
-      return new Promise((resolve) => {
-        const audio = new Audio(filler.url);
-        fillerAudioRef.current = audio;
-        audio.onended = () => { fillerAudioRef.current = null; resolve(); };
-        audio.onerror = () => { fillerAudioRef.current = null; resolve(); };
-        audio.play().catch(() => resolve());
-      });
-    } catch (e) {
-      console.error('Filler playback failed:', e);
-    }
-  }, [getToken]);
-
-  // Submit a question text to /ask-stream with filler bridge + streaming audio.
-  const submitQuestionText = useCallback(async (question) => {
-    const q = question.trim();
-    if (!q) return;
-
-    // Pause lecture
-    if (audioRef.current && playing) {
-      audioRef.current.pause();
-      setPlaying(false);
+    if (text !== 'Begin') {
+      setOhMessages(prev => [...prev, { role: 'user', content: msg }]);
     }
 
-    setQaState('thinking');
-    setQaInput('');
-    setQaResponse('');
-    setQaCount(c => c + 1);
-
-    // Kick off filler in parallel so there's no silence while Claude thinks
-    playRandomFiller();
-
-    const token = await getToken();
+    const token = tokenOverride || await getToken();
 
     try {
-      const res = await fetch(`${API}/api/voice/podcast/${topicId}/ask-stream`, {
+      const res = await fetch(`${API}/api/walkthrough/${topicId}/message`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          text: q,
-          pausedAt: currentTime,
-          history: [],
-          segment_number: parseInt(segmentNum, 10),
-        }),
+        body: JSON.stringify({ session_id: sid, message: msg }),
       });
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let fullAnswer = '';
+      let fullResponse = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -234,110 +224,73 @@ export default function LecturePlayerPage() {
           if (!line.startsWith('data: ')) continue;
           try {
             const event = JSON.parse(line.slice(6));
-            if (event.type === 'text_chunk') {
-              fullAnswer += event.text + ' ';
-              setQaResponse(fullAnswer);
-            } else if (event.type === 'audio_chunk') {
-              enqueueQaAudio(event.audio);
-            } else if (event.type === 'answer') {
-              fullAnswer = event.text;
-              setQaResponse(fullAnswer);
+            if (event.type === 'text') {
+              fullResponse += event.text;
+              setOhStreamingText(fullResponse);
+            } else if (event.type === 'done') {
+              setOhMessages(prev => [...prev, { role: 'assistant', content: fullResponse }]);
+              setOhStreamingText('');
             }
           } catch {}
         }
       }
     } catch (err) {
-      console.error('Q&A failed:', err);
-      setQaResponse('Sorry, something went wrong.');
+      console.error('Office Hours message failed:', err);
     }
 
-    // If no audio chunks ever arrived, go straight back to idle
-    if (!isPlayingQaRef.current && audioQueueRef.current.length === 0) {
-      setQaState('idle');
+    setOhStreaming(false);
+  }
+
+  const ohHandleKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      ohSendMessage();
     }
-  }, [playing, currentTime, topicId, segmentNum, getToken, enqueueQaAudio, playRandomFiller]);
+  };
 
-  // Text-box submit path
-  const sendQuestion = useCallback(() => {
-    if (qaLoading || qaCount >= MAX_QUESTIONS) return;
-    submitQuestionText(qaInput);
-  }, [qaInput, qaLoading, qaCount, submitQuestionText]);
+  // ── Exam-Style Questions helpers ──
+  const quizCurrent = quizQuestions?.[quizIndex];
+  const quizLetters = ['A', 'B', 'C', 'D'];
 
-  // Voice recording path
-  const startRecording = useCallback(async () => {
-    if (qaLoading || qaCount >= MAX_QUESTIONS) return;
-    // Pause lecture immediately when mic activates
-    if (audioRef.current) {
-      audioRef.current.pause();
-      setPlaying(false);
+  const handleQuizSelect = (letter) => {
+    if (quizAnswered) return;
+    setQuizSelected(letter);
+    setQuizAnswered(true);
+    if (letter === quizCurrent.correct) setQuizScore(s => s + 1);
+  };
+
+  const handleQuizNext = () => {
+    if (quizIndex < quizQuestions.length - 1) {
+      setQuizIndex(i => i + 1);
+      setQuizSelected(null);
+      setQuizAnswered(false);
+    } else {
+      setQuizFinished(true);
     }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+  };
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunksRef.current.push(e.data);
-      };
+  const handleQuizReset = () => {
+    setQuizIndex(0);
+    setQuizSelected(null);
+    setQuizAnswered(false);
+    setQuizScore(0);
+    setQuizFinished(false);
+  };
 
-      mediaRecorder.onstop = async () => {
-        stream.getTracks().forEach(t => t.stop());
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        // Transcribe → then pipe through the same text path so filler + streaming run
-        setQaState('thinking');
-        try {
-          const arrayBuffer = await audioBlob.arrayBuffer();
-          const token = await getToken();
-          const sttResponse = await fetch(`${API}/api/voice/transcribe`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-            body: new Uint8Array(arrayBuffer),
-          });
-          const sttData = await sttResponse.json();
-          if (sttData.transcript?.trim()) {
-            await submitQuestionText(sttData.transcript.trim());
-          } else {
-            setQaState('idle');
-          }
-        } catch (err) {
-          console.error('Transcribe failed:', err);
-          setQaState('idle');
-        }
-      };
+  // ── Notes: filter to current segment ──
+  const getSegmentNotes = () => {
+    if (!notesQuestions || notesQuestions.length === 0) return [];
+    const segNum = parseInt(segmentNum, 10);
+    const filtered = notesQuestions.filter(q => {
+      const s = q.segment || q.section || '';
+      const match = String(s).match(/(\d+)/);
+      return match && parseInt(match[1], 10) === segNum;
+    });
+    return filtered.length > 0 ? filtered : notesQuestions;
+  };
 
-      mediaRecorder.start();
-      setQaState('recording');
-    } catch (err) {
-      console.error('Mic access denied:', err);
-      setQaState('idle');
-    }
-  }, [qaLoading, qaCount, getToken, submitQuestionText]);
-
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop();
-    }
-  }, []);
-
-  // Reset state when the Ashley audio queue fully drains
-  useEffect(() => {
-    if (qaState === 'speaking') {
-      const check = setInterval(() => {
-        if (!isPlayingQaRef.current && audioQueueRef.current.length === 0) {
-          setQaState('idle');
-          clearInterval(check);
-        }
-      }, 300);
-      return () => clearInterval(check);
-    }
-  }, [qaState]);
-
-  // Navigate
-  const prevSeg = segIdx > 0 ? segIdx : null;
-  const nextSeg = segments && segIdx < segments.length - 1 ? segIdx + 2 : null;
-
-  if (!seg) {
+  // ── Loading state ──
+  if (contentLoading) {
     return (
       <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
         <Header />
@@ -349,244 +302,330 @@ export default function LecturePlayerPage() {
     );
   }
 
-  const title = seg.anchors?.[0] || `Segment ${seg.number}`;
-
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
+    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5', display: 'flex', flexDirection: 'column' }}>
       <Header />
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px', flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
         <BackButton href={`/dashboard/${courseId}/${topicId}/v2/lectures`} />
 
-        <div style={{ fontSize: 13, color: '#666', marginTop: 12 }}>
-          Lecture {seg.number}{segments ? ` of ${segments.length}` : ''}
+        <div style={{ fontSize: 13, color: '#666', marginTop: 8, marginBottom: 16 }}>
+          Segment {segmentNum}{totalSegments ? ` of ${totalSegments}` : ''}
         </div>
 
-        {/* Image area */}
+        {/* ── Tab bar ── */}
         <div style={{
-          position: 'relative', width: '100%', aspectRatio: '3/2',
-          borderRadius: 12, overflow: 'hidden', marginTop: 12, marginBottom: 16,
-          background: '#111',
+          display: 'flex', gap: 0, borderBottom: '1px solid #222', marginBottom: 20,
+          overflowX: 'auto', WebkitOverflowScrolling: 'touch',
         }}>
-          {seg.image && (
-            <img
-              ref={imageRef}
-              src={seg.image}
-              alt=""
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
               style={{
-                width: '100%', height: '100%', objectFit: 'cover',
-                opacity: playing ? 0.15 : 1,
-                transition: 'opacity 0.6s ease',
-              }}
-            />
-          )}
-          {/* Anchor text overlay */}
-          {activeAnchor && (
-            <div
-              ref={anchorRef}
-              style={{
-                position: 'absolute', inset: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                padding: '24px 32px',
+                padding: '10px 16px',
+                fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
+                background: 'transparent', border: 'none', cursor: 'pointer',
+                color: activeTab === tab.id ? '#e5e5e5' : '#666',
+                borderBottom: activeTab === tab.id ? '2px solid #2563eb' : '2px solid transparent',
+                transition: 'color 0.15s, border-color 0.15s',
               }}
             >
-              <p style={{
-                fontFamily: "var(--font-display), 'Lora', serif",
-                fontSize: 22, fontWeight: 500, fontStyle: 'italic',
-                color: '#e5e5e5', textAlign: 'center', lineHeight: 1.4,
-                textShadow: '0 2px 8px rgba(0,0,0,0.8)',
-              }}>
-                {activeAnchor}
-              </p>
-            </div>
-          )}
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        {/* Audio element */}
+        {/* ── Audio element (always mounted) ── */}
         <audio
           ref={audioRef}
-          src={seg.audio || ''}
+          src={seg?.audio || ''}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={() => setDuration(audioRef.current?.duration || 0)}
-          onEnded={() => { setPlaying(false); setAudioFinished(true); }}
+          onEnded={() => setPlaying(false)}
+          onPause={() => setPlaying(false)}
+          onPlay={() => setPlaying(true)}
           preload="auto"
         />
 
-        {/* Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <button
-            onClick={togglePlay}
-            disabled={!seg.audio}
-            style={{
-              width: 44, height: 44, borderRadius: '50%',
-              background: seg.audio ? '#2563eb' : '#333',
-              border: 'none', color: '#fff', fontSize: 18, cursor: seg.audio ? 'pointer' : 'default',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-            }}
-          >
-            {playing ? '⏸' : '▶'}
-          </button>
+        {/* ════════════════════════════════════════════════════════
+            TAB: Listen
+            ════════════════════════════════════════════════════════ */}
+        {activeTab === 'listen' && (
+          <div>
+            {!seg?.audio ? (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}>
+                <p>No audio available for this segment.</p>
+                <p style={{ fontSize: 13, marginTop: 8 }}>Lecture content needs to be generated first.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <button
+                  onClick={togglePlay}
+                  style={{
+                    width: 44, height: 44, borderRadius: '50%',
+                    background: '#2563eb',
+                    border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}
+                >
+                  {playing ? '⏸' : '▶'}
+                </button>
 
-          <div
-            onClick={handleProgressClick}
-            style={{
-              flex: 1, height: 6, background: '#222', borderRadius: 3,
-              cursor: 'pointer', position: 'relative',
-            }}
-          >
-            <div style={{
-              width: `${duration ? (currentTime / duration) * 100 : 0}%`,
-              height: '100%', background: '#2563eb', borderRadius: 3,
-              transition: 'width 0.1s',
-            }} />
+                <div
+                  onClick={handleProgressClick}
+                  style={{
+                    flex: 1, height: 6, background: '#222', borderRadius: 3,
+                    cursor: 'pointer', position: 'relative',
+                  }}
+                >
+                  <div style={{
+                    width: `${duration ? (currentTime / duration) * 100 : 0}%`,
+                    height: '100%', background: '#2563eb', borderRadius: 3,
+                    transition: 'width 0.1s',
+                  }} />
+                </div>
+
+                <span style={{ fontSize: 12, color: '#666', flexShrink: 0 }}>
+                  {fmt(currentTime)} / {fmt(duration)}
+                </span>
+              </div>
+            )}
           </div>
+        )}
 
-          <span style={{ fontSize: 12, color: '#666', flexShrink: 0 }}>
-            {fmt(currentTime)} / {fmt(duration)}
-          </span>
-        </div>
+        {/* ════════════════════════════════════════════════════════
+            TAB: Office Hours
+            ════════════════════════════════════════════════════════ */}
+        {activeTab === 'office-hours' && (
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 16 }}>
+              {ohMessages.filter(m => m.role !== 'user' || m.content !== 'Begin').map((msg, i) => (
+                <div
+                  key={i}
+                  style={{
+                    alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
+                    maxWidth: '85%',
+                    padding: '10px 14px',
+                    borderRadius: 12,
+                    fontSize: 14, lineHeight: 1.5,
+                    background: msg.role === 'user' ? '#1a3a5c' : '#111',
+                    border: msg.role === 'user' ? '1px solid #2a4a6c' : '1px solid #222',
+                    color: '#e5e5e5',
+                    whiteSpace: 'pre-wrap',
+                  }}
+                >
+                  {msg.content}
+                </div>
+              ))}
 
-        {/* Q&A section */}
-        <div style={{ borderTop: '1px solid #222', paddingTop: 16, marginBottom: 16 }}>
-          {qaResponse && (
-            <div style={{
-              background: '#111', border: '1px solid #222', borderRadius: 8,
-              padding: '12px 16px', fontSize: 14, color: '#ccc', lineHeight: 1.5,
-              marginBottom: 12, whiteSpace: 'pre-wrap',
-            }}>
-              {qaResponse}
+              {ohStreamingText && (
+                <div style={{
+                  alignSelf: 'flex-start', maxWidth: '85%',
+                  padding: '10px 14px', borderRadius: 12,
+                  fontSize: 14, lineHeight: 1.5,
+                  background: '#111', border: '1px solid #222',
+                  color: '#e5e5e5', whiteSpace: 'pre-wrap',
+                }}>
+                  {ohStreamingText}<span style={{ opacity: 0.4 }}>▊</span>
+                </div>
+              )}
+
+              {ohStreaming && !ohStreamingText && (
+                <div style={{ color: '#666', fontSize: 13, padding: '8px 14px' }}>Thinking...</div>
+              )}
+
+              {!ohSession && !ohStreaming && (
+                <div style={{ color: '#666', fontSize: 13, padding: '8px 14px' }}>Starting Office Hours...</div>
+              )}
+
+              <div ref={messagesEndRef} />
             </div>
-          )}
 
-          {qaState === 'speaking' && (
-            <button
-              onClick={() => {
-                if (qaAudioRef.current) {
-                  qaAudioRef.current.pause();
-                  qaAudioRef.current = null;
-                }
-                if (fillerAudioRef.current) {
-                  fillerAudioRef.current.pause();
-                  fillerAudioRef.current = null;
-                }
-                audioQueueRef.current = [];
-                isPlayingQaRef.current = false;
-                setQaState('idle');
-              }}
-              style={{
-                marginTop: 8, padding: '8px 20px',
-                background: '#1a1a1a', border: '1px solid #333',
-                borderRadius: 8, fontSize: 13, cursor: 'pointer',
-                color: '#888',
-              }}
-            >
-              Got it — stop
-            </button>
-          )}
-
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {/* Mic button */}
-            <button
-              onClick={qaState === 'recording' ? stopRecording : startRecording}
-              disabled={(qaLoading && qaState !== 'recording') || qaCount >= MAX_QUESTIONS}
-              title={qaState === 'recording' ? 'Stop recording' : 'Ask by voice'}
-              style={{
-                width: 44, height: 44, borderRadius: '50%',
-                border: qaState === 'recording' ? '2px solid #ef4444' : '2px solid #444',
-                background: qaState === 'recording' ? '#991b1b' : '#1a1a1a',
-                color: qaState === 'recording' ? '#fca5a5' : '#888',
-                cursor: qaCount >= MAX_QUESTIONS ? 'default' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 18, flexShrink: 0,
-                transition: 'all 0.15s',
-              }}
-            >
-              🎤
-            </button>
-
-            {/* Text input */}
-            <input
-              type="text"
-              value={qaInput}
-              onChange={e => setQaInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendQuestion(); } }}
-              placeholder={
-                qaCount >= MAX_QUESTIONS ? 'Question limit reached' :
-                qaState === 'recording' ? 'Listening...' :
-                qaState === 'thinking' ? 'Thinking...' :
-                qaState === 'speaking' ? 'Responding...' :
-                'Ask about what you just heard...'
-              }
-              disabled={qaLoading || qaCount >= MAX_QUESTIONS}
-              style={{
-                flex: 1, padding: '10px 14px', borderRadius: 8,
-                border: '1px solid #333', background: '#111',
-                color: '#e5e5e5', fontSize: 14, outline: 'none',
-              }}
-            />
-
-            {/* Send button */}
-            <button
-              onClick={sendQuestion}
-              disabled={!qaInput.trim() || qaLoading || qaCount >= MAX_QUESTIONS}
-              style={{
-                padding: '10px 16px', borderRadius: 8,
-                background: qaInput.trim() && !qaLoading ? '#2563eb' : '#222',
-                color: qaInput.trim() && !qaLoading ? '#fff' : '#666',
-                border: 'none', cursor: qaInput.trim() && !qaLoading ? 'pointer' : 'default',
-                fontSize: 14, fontWeight: 500, flexShrink: 0,
-              }}
-            >
-              {qaLoading ? '...' : 'Ask'}
-            </button>
+            {/* Input */}
+            <div style={{ borderTop: '1px solid #222', paddingTop: 12, paddingBottom: 12 }}>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="text"
+                  value={ohInput}
+                  onChange={e => setOhInput(e.target.value)}
+                  onKeyDown={ohHandleKeyDown}
+                  placeholder="Type your response..."
+                  disabled={ohStreaming || !ohSession}
+                  style={{
+                    flex: 1, padding: '10px 14px', borderRadius: 8,
+                    border: '1px solid #333', background: '#111',
+                    color: '#e5e5e5', fontSize: 14, outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={() => ohSendMessage()}
+                  disabled={!ohInput.trim() || ohStreaming || !ohSession}
+                  style={{
+                    padding: '10px 16px', borderRadius: 8,
+                    background: ohInput.trim() && ohSession ? '#2563eb' : '#222',
+                    color: ohInput.trim() && ohSession ? '#fff' : '#666',
+                    border: 'none',
+                    cursor: ohInput.trim() && ohSession ? 'pointer' : 'default',
+                    fontSize: 14, fontWeight: 500,
+                  }}
+                >
+                  Send
+                </button>
+              </div>
+            </div>
           </div>
-          {qaCount > 0 && qaCount < MAX_QUESTIONS && (
-            <div style={{ fontSize: 12, color: '#555', marginTop: 6 }}>
-              {MAX_QUESTIONS - qaCount} question{MAX_QUESTIONS - qaCount !== 1 ? 's' : ''} remaining
-            </div>
-          )}
-        </div>
+        )}
 
-        {/* Navigation */}
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          borderTop: '1px solid #222', paddingTop: 16,
-        }}>
-          {prevSeg !== null ? (
-            <button
-              onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2/lectures/${prevSeg}`)}
-              style={{
-                padding: '8px 16px', borderRadius: 8, background: '#111',
-                border: '1px solid #333', color: '#888', cursor: 'pointer', fontSize: 13,
-              }}
-            >
-              ← Previous
-            </button>
-          ) : <div />}
+        {/* ════════════════════════════════════════════════════════
+            TAB: Exit Ticket (placeholder)
+            ════════════════════════════════════════════════════════ */}
+        {activeTab === 'exit-ticket' && (
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}>
+            <p style={{ fontSize: 16, marginBottom: 8 }}>Exit Ticket</p>
+            <p style={{ fontSize: 14 }}>Coming soon</p>
+          </div>
+        )}
 
-          {audioFinished && (
-            <button
-              onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2/lectures/${seg.number}/tutorial`)}
-              style={{
-                padding: '10px 20px', borderRadius: 8, background: '#2563eb',
-                border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 500,
-              }}
-            >
-              Next: Tutorial →
-            </button>
-          )}
+        {/* ════════════════════════════════════════════════════════
+            TAB: Notes
+            ════════════════════════════════════════════════════════ */}
+        {activeTab === 'notes' && (
+          <div>
+            {notesLoading ? (
+              <div style={{ color: '#888', padding: '40px 0', textAlign: 'center' }}>Loading notes...</div>
+            ) : !notesQuestions || notesQuestions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}>
+                <p>No notes available yet.</p>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {getSegmentNotes().map((q, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      background: '#111', border: '1px solid #222', borderRadius: 12,
+                      padding: '16px 20px',
+                    }}
+                  >
+                    {q.section && (
+                      <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>
+                        {q.section}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 14, color: '#e5e5e5', lineHeight: 1.6 }}>
+                      {q.question}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
-          {nextSeg !== null ? (
-            <button
-              onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2/lectures/${nextSeg}`)}
-              style={{
-                padding: '8px 16px', borderRadius: 8, background: '#111',
-                border: '1px solid #333', color: '#888', cursor: 'pointer', fontSize: 13,
-              }}
-            >
-              Next →
-            </button>
-          ) : <div />}
-        </div>
+        {/* ════════════════════════════════════════════════════════
+            TAB: Exam-Style Questions
+            ════════════════════════════════════════════════════════ */}
+        {activeTab === 'exam-questions' && (
+          <div>
+            {quizLoading ? (
+              <div style={{ color: '#888', padding: '40px 0', textAlign: 'center' }}>Loading practice questions...</div>
+            ) : !quizQuestions || quizQuestions.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}>
+                <p>No practice questions available yet.</p>
+              </div>
+            ) : quizFinished ? (
+              <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                <div style={{ fontSize: 13, color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Score</div>
+                <div style={{
+                  fontFamily: "var(--font-display), 'Lora', serif",
+                  fontSize: 48, fontWeight: 600, marginTop: 8,
+                  color: quizScore / quizQuestions.length >= 0.8 ? '#4A7C59' : quizScore / quizQuestions.length >= 0.6 ? '#C4972A' : '#C44A2A',
+                }}>
+                  {quizScore} / {quizQuestions.length}
+                </div>
+                <button
+                  onClick={handleQuizReset}
+                  style={{
+                    marginTop: 24, padding: '10px 24px', borderRadius: 8,
+                    background: '#222', border: '1px solid #333',
+                    color: '#e5e5e5', cursor: 'pointer', fontSize: 14,
+                  }}
+                >
+                  Try Again
+                </button>
+              </div>
+            ) : quizCurrent ? (
+              <div>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
+                  Question {quizIndex + 1} of {quizQuestions.length}
+                </div>
+                <div style={{
+                  fontSize: 15, color: '#e5e5e5', lineHeight: 1.6, marginBottom: 20,
+                }}>
+                  {quizCurrent.question}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {quizLetters.map((letter) => {
+                    const optionText = quizCurrent.options?.[letter];
+                    if (!optionText) return null;
+
+                    let bg = '#111';
+                    let border = '1px solid #222';
+                    let color = '#e5e5e5';
+
+                    if (quizAnswered) {
+                      if (letter === quizCurrent.correct) {
+                        bg = '#0f2918'; border = '1px solid #4A7C59'; color = '#7dcc8f';
+                      } else if (letter === quizSelected) {
+                        bg = '#2a1010'; border = '1px solid #C44A2A'; color = '#e88';
+                      } else {
+                        color = '#555';
+                      }
+                    } else if (letter === quizSelected) {
+                      border = '2px solid #2563eb';
+                    }
+
+                    return (
+                      <button
+                        key={letter}
+                        onClick={() => handleQuizSelect(letter)}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          padding: '12px 16px', borderRadius: 8,
+                          background: bg, border, color,
+                          cursor: quizAnswered ? 'default' : 'pointer',
+                          fontSize: 14, lineHeight: 1.5,
+                        }}
+                      >
+                        <strong style={{ marginRight: 8 }}>{letter}.</strong>
+                        {optionText}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {quizAnswered && (
+                  <div style={{ marginTop: 16, textAlign: 'center' }}>
+                    <button
+                      onClick={handleQuizNext}
+                      style={{
+                        padding: '10px 24px', borderRadius: 8,
+                        background: '#2563eb', border: 'none',
+                        color: '#fff', cursor: 'pointer',
+                        fontSize: 14, fontWeight: 500,
+                      }}
+                    >
+                      {quizIndex < quizQuestions.length - 1 ? 'Next Question →' : 'See Results'}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
     </div>
   );
