@@ -34,6 +34,8 @@ export default function SegmentContainerPage() {
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [activeAnchor, setActiveAnchor] = useState('');
+  const anchorRef = useRef(null);
 
   // ── Listen Q&A state ──
   const [qaInput, setQaInput] = useState('');
@@ -106,8 +108,43 @@ export default function SegmentContainerPage() {
 
   const handleTimeUpdate = useCallback(() => {
     if (!audioRef.current) return;
-    setCurrentTime(audioRef.current.currentTime);
-  }, []);
+    const t = audioRef.current.currentTime;
+    setCurrentTime(t);
+
+    // Anchor sync
+    const anchors = seg?.timestamps?.anchors || [];
+    let active = '';
+    for (const a of anchors) {
+      const start = a.start_time || a.time || 0;
+      const end = a.end_time || (start + 5);
+      if (t >= start - 0.3 && t <= end + 1.5) {
+        active = a.text;
+        break;
+      }
+    }
+
+    if (active !== activeAnchor) {
+      if (anchorRef.current) {
+        anchorRef.current.style.transition = 'opacity 0.3s, transform 0.3s';
+        anchorRef.current.style.opacity = '0';
+        anchorRef.current.style.transform = 'translateY(-8px)';
+        setTimeout(() => {
+          setActiveAnchor(active);
+          if (anchorRef.current && active) {
+            anchorRef.current.style.transform = 'translateY(10px)';
+            requestAnimationFrame(() => {
+              if (anchorRef.current) {
+                anchorRef.current.style.opacity = '1';
+                anchorRef.current.style.transform = 'translateY(0)';
+              }
+            });
+          }
+        }, 300);
+      } else {
+        setActiveAnchor(active);
+      }
+    }
+  }, [seg, activeAnchor]);
 
   const handleProgressClick = (e) => {
     if (!audioRef.current || !duration) return;
@@ -570,6 +607,27 @@ export default function SegmentContainerPage() {
               </div>
             ) : (
               <>
+                {/* Anchor text display */}
+                <div style={{
+                  minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 16, padding: '16px 24px',
+                  background: activeAnchor ? '#111' : 'transparent',
+                  borderRadius: 12, transition: 'background 0.3s',
+                }}>
+                  {activeAnchor && (
+                    <div
+                      ref={anchorRef}
+                      style={{
+                        fontFamily: "var(--font-display), 'Lora', serif",
+                        fontSize: 18, fontWeight: 500, fontStyle: 'italic',
+                        color: '#e5e5e5', textAlign: 'center', lineHeight: 1.5,
+                      }}
+                    >
+                      {activeAnchor}
+                    </div>
+                  )}
+                </div>
+
                 {/* Audio controls */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                   <button onClick={togglePlay} style={{
