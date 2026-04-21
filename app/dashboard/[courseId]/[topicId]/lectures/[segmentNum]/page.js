@@ -266,6 +266,11 @@ export default function LecturePlayerPage() {
   // Voice recording path
   const startRecording = useCallback(async () => {
     if (qaLoading || qaCount >= MAX_QUESTIONS) return;
+    // Pause lecture immediately when mic activates
+    if (audioRef.current) {
+      audioRef.current.pause();
+      setPlaying(false);
+    }
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
@@ -449,6 +454,32 @@ export default function LecturePlayerPage() {
             }}>
               {qaResponse}
             </div>
+          )}
+
+          {qaState === 'speaking' && (
+            <button
+              onClick={() => {
+                if (qaAudioRef.current) {
+                  qaAudioRef.current.pause();
+                  qaAudioRef.current = null;
+                }
+                if (fillerAudioRef.current) {
+                  fillerAudioRef.current.pause();
+                  fillerAudioRef.current = null;
+                }
+                audioQueueRef.current = [];
+                isPlayingQaRef.current = false;
+                setQaState('idle');
+              }}
+              style={{
+                marginTop: 8, padding: '8px 20px',
+                background: '#1a1a1a', border: '1px solid #333',
+                borderRadius: 8, fontSize: 13, cursor: 'pointer',
+                color: '#888',
+              }}
+            >
+              Got it — stop
+            </button>
           )}
 
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
