@@ -540,30 +540,30 @@ export default function SegmentContainerPage() {
 
   if (contentLoading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
+      <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a' }}>
         <Header />
-        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
-          <p style={{ color: '#888' }}>Loading...</p>
+          <p style={{ color: '#9B8E82' }}>Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a', display: 'flex', flexDirection: 'column' }}>
       <Header />
-      <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+      <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px', flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
         <BackButton href={`/dashboard/${courseId}/${topicId}/v2/lectures`} />
 
-        <div style={{ fontSize: 13, color: '#666', marginTop: 8, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: '#9B8E82', marginTop: 8, marginBottom: 16 }}>
           Segment {segmentNum}{totalSegments ? ` of ${totalSegments}` : ''}
         </div>
 
         {/* ── Tab bar ── */}
         <div style={{
-          display: 'flex', gap: 0, borderBottom: '1px solid #222', marginBottom: 20,
+          display: 'flex', gap: 0, borderBottom: '1px solid #E8E4DA', marginBottom: 20,
           overflowX: 'auto', WebkitOverflowScrolling: 'touch',
         }}>
           {TABS.map((tab) => (
@@ -573,8 +573,8 @@ export default function SegmentContainerPage() {
               style={{
                 padding: '10px 16px', fontSize: 13, fontWeight: 500, whiteSpace: 'nowrap',
                 background: 'transparent', border: 'none', cursor: 'pointer',
-                color: activeTab === tab.id ? '#e5e5e5' : '#666',
-                borderBottom: activeTab === tab.id ? '2px solid #2563eb' : '2px solid transparent',
+                color: activeTab === tab.id ? '#1a1a1a' : '#6B6B6B',
+                borderBottom: activeTab === tab.id ? '2px solid #8B6914' : '2px solid transparent',
                 transition: 'color 0.15s, border-color 0.15s',
               }}
             >
@@ -601,7 +601,7 @@ export default function SegmentContainerPage() {
         {activeTab === 'listen' && (
           <div>
             {!seg?.audio ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}>
+              <div style={{ textAlign: 'center', padding: '60px 0', color: '#6B6B6B' }}>
                 <p>No audio available for this segment.</p>
                 <p style={{ fontSize: 13, marginTop: 8 }}>Lecture content needs to be generated first.</p>
               </div>
@@ -611,7 +611,7 @@ export default function SegmentContainerPage() {
                 <div style={{
                   minHeight: 80, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   marginBottom: 16, padding: '16px 24px',
-                  background: activeAnchor ? '#111' : 'transparent',
+                  background: activeAnchor ? '#f5f0e8' : 'transparent',
                   borderRadius: 12, transition: 'background 0.3s',
                 }}>
                   {activeAnchor && (
@@ -620,7 +620,7 @@ export default function SegmentContainerPage() {
                       style={{
                         fontFamily: "var(--font-display), 'Lora', serif",
                         fontSize: 18, fontWeight: 500, fontStyle: 'italic',
-                        color: '#e5e5e5', textAlign: 'center', lineHeight: 1.5,
+                        color: '#1a1a1a', textAlign: 'center', lineHeight: 1.5,
                       }}
                     >
                       {activeAnchor}
@@ -631,31 +631,31 @@ export default function SegmentContainerPage() {
                 {/* Audio controls */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
                   <button onClick={togglePlay} style={{
-                    width: 44, height: 44, borderRadius: '50%', background: '#2563eb',
+                    width: 44, height: 44, borderRadius: '50%', background: '#8B6914',
                     border: 'none', color: '#fff', fontSize: 18, cursor: 'pointer',
                     display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                   }}>
                     {playing ? '⏸' : '▶'}
                   </button>
                   <div onClick={handleProgressClick} style={{
-                    flex: 1, height: 6, background: '#222', borderRadius: 3, cursor: 'pointer', position: 'relative',
+                    flex: 1, height: 6, background: '#E8E4DA', borderRadius: 3, cursor: 'pointer', position: 'relative',
                   }}>
                     <div style={{
                       width: `${duration ? (currentTime / duration) * 100 : 0}%`,
-                      height: '100%', background: '#2563eb', borderRadius: 3, transition: 'width 0.1s',
+                      height: '100%', background: '#8B6914', borderRadius: 3, transition: 'width 0.1s',
                     }} />
                   </div>
-                  <span style={{ fontSize: 12, color: '#666', flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, color: '#9B8E82', flexShrink: 0 }}>
                     {fmt(currentTime)} / {fmt(duration)}
                   </span>
                 </div>
 
                 {/* Q&A section */}
-                <div style={{ borderTop: '1px solid #222', paddingTop: 16 }}>
+                <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 16 }}>
                   {qaResponse && (
                     <div style={{
-                      background: '#111', border: '1px solid #222', borderRadius: 8,
-                      padding: '12px 16px', fontSize: 14, color: '#ccc', lineHeight: 1.5,
+                      background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 8,
+                      padding: '12px 16px', fontSize: 14, color: '#4a4a4a', lineHeight: 1.5,
                       marginBottom: 12, whiteSpace: 'pre-wrap',
                     }}>
                       {qaResponse}
@@ -673,8 +673,8 @@ export default function SegmentContainerPage() {
                       }}
                       style={{
                         marginBottom: 12, padding: '8px 20px',
-                        background: '#1a1a1a', border: '1px solid #333',
-                        borderRadius: 8, fontSize: 13, cursor: 'pointer', color: '#888',
+                        background: '#f5f0e8', border: '1px solid #E8E4DA',
+                        borderRadius: 8, fontSize: 13, cursor: 'pointer', color: '#9B8E82',
                       }}
                     >
                       Got it — stop
@@ -713,8 +713,8 @@ export default function SegmentContainerPage() {
                       disabled={qaLoading || qaCount >= MAX_QUESTIONS}
                       style={{
                         flex: 1, padding: '10px 14px', borderRadius: 8,
-                        border: '1px solid #333', background: '#111',
-                        color: '#e5e5e5', fontSize: 14, outline: 'none',
+                        border: '1px solid #E8E4DA', background: '#ffffff',
+                        color: '#1a1a1a', fontSize: 14, outline: 'none',
                       }}
                     />
                     <button
@@ -722,7 +722,7 @@ export default function SegmentContainerPage() {
                       disabled={!qaInput.trim() || qaLoading || qaCount >= MAX_QUESTIONS}
                       style={{
                         padding: '10px 16px', borderRadius: 8,
-                        background: qaInput.trim() && !qaLoading ? '#2563eb' : '#222',
+                        background: qaInput.trim() && !qaLoading ? '#8B6914' : '#E8E4DA',
                         color: qaInput.trim() && !qaLoading ? '#fff' : '#666',
                         border: 'none', cursor: qaInput.trim() && !qaLoading ? 'pointer' : 'default',
                         fontSize: 14, fontWeight: 500, flexShrink: 0,
@@ -732,7 +732,7 @@ export default function SegmentContainerPage() {
                     </button>
                   </div>
                   {qaCount > 0 && qaCount < MAX_QUESTIONS && (
-                    <div style={{ fontSize: 12, color: '#555', marginTop: 6 }}>
+                    <div style={{ fontSize: 12, color: '#9B8E82', marginTop: 6 }}>
                       {MAX_QUESTIONS - qaCount} question{MAX_QUESTIONS - qaCount !== 1 ? 's' : ''} remaining
                     </div>
                   )}
@@ -753,9 +753,9 @@ export default function SegmentContainerPage() {
                   alignSelf: msg.role === 'user' ? 'flex-end' : 'flex-start',
                   maxWidth: '85%', padding: '10px 14px', borderRadius: 12,
                   fontSize: 14, lineHeight: 1.5,
-                  background: msg.role === 'user' ? '#1a3a5c' : '#111',
+                  background: msg.role === 'user' ? '#f0ebe0' : '#ffffff',
                   border: msg.role === 'user' ? '1px solid #2a4a6c' : '1px solid #222',
-                  color: '#e5e5e5', whiteSpace: 'pre-wrap',
+                  color: '#1a1a1a', whiteSpace: 'pre-wrap',
                 }}>
                   {msg.content}
                 </div>
@@ -763,21 +763,21 @@ export default function SegmentContainerPage() {
               {ohStreamingText && (
                 <div style={{
                   alignSelf: 'flex-start', maxWidth: '85%', padding: '10px 14px', borderRadius: 12,
-                  fontSize: 14, lineHeight: 1.5, background: '#111', border: '1px solid #222',
-                  color: '#e5e5e5', whiteSpace: 'pre-wrap',
+                  fontSize: 14, lineHeight: 1.5, background: '#ffffff', border: '1px solid #E8E4DA',
+                  color: '#1a1a1a', whiteSpace: 'pre-wrap',
                 }}>
                   {ohStreamingText}<span style={{ opacity: 0.4 }}>▊</span>
                 </div>
               )}
               {ohStreaming && !ohStreamingText && (
-                <div style={{ color: '#666', fontSize: 13, padding: '8px 14px' }}>Thinking...</div>
+                <div style={{ color: '#9B8E82', fontSize: 13, padding: '8px 14px' }}>Thinking...</div>
               )}
               {!ohSession && !ohStreaming && (
-                <div style={{ color: '#666', fontSize: 13, padding: '8px 14px' }}>Starting Office Hours...</div>
+                <div style={{ color: '#9B8E82', fontSize: 13, padding: '8px 14px' }}>Starting Office Hours...</div>
               )}
               <div ref={messagesEndRef} />
             </div>
-            <div style={{ borderTop: '1px solid #222', paddingTop: 12, paddingBottom: 12 }}>
+            <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 12, paddingBottom: 12 }}>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
                   type="text" value={ohInput}
@@ -787,8 +787,8 @@ export default function SegmentContainerPage() {
                   disabled={ohStreaming || !ohSession}
                   style={{
                     flex: 1, padding: '10px 14px', borderRadius: 8,
-                    border: '1px solid #333', background: '#111',
-                    color: '#e5e5e5', fontSize: 14, outline: 'none',
+                    border: '1px solid #E8E4DA', background: '#ffffff',
+                    color: '#1a1a1a', fontSize: 14, outline: 'none',
                   }}
                 />
                 <button
@@ -796,7 +796,7 @@ export default function SegmentContainerPage() {
                   disabled={!ohInput.trim() || ohStreaming || !ohSession}
                   style={{
                     padding: '10px 16px', borderRadius: 8,
-                    background: ohInput.trim() && ohSession ? '#2563eb' : '#222',
+                    background: ohInput.trim() && ohSession ? '#8B6914' : '#E8E4DA',
                     color: ohInput.trim() && ohSession ? '#fff' : '#666',
                     border: 'none', cursor: ohInput.trim() && ohSession ? 'pointer' : 'default',
                     fontSize: 14, fontWeight: 500,
@@ -813,7 +813,7 @@ export default function SegmentContainerPage() {
             TAB: Exit Ticket (placeholder)
             ════════════════════════════════════════════════════════ */}
         {activeTab === 'exit-ticket' && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#6B6B6B' }}>
             <p style={{ fontSize: 16, marginBottom: 8 }}>Exit Ticket</p>
             <p style={{ fontSize: 14 }}>Coming soon</p>
           </div>
@@ -825,17 +825,17 @@ export default function SegmentContainerPage() {
         {activeTab === 'notes' && (
           <div>
             {notesLoading ? (
-              <div style={{ color: '#888', padding: '40px 0', textAlign: 'center' }}>Loading notes...</div>
+              <div style={{ color: '#9B8E82', padding: '40px 0', textAlign: 'center' }}>Loading notes...</div>
             ) : !notesQuestions || notesQuestions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}><p>No notes available yet.</p></div>
+              <div style={{ textAlign: 'center', padding: '60px 0', color: '#6B6B6B' }}><p>No notes available yet.</p></div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {getSegmentNotes().map((q, i) => (
-                  <div key={i} style={{ background: '#111', border: '1px solid #222', borderRadius: 12, padding: '16px 20px' }}>
+                  <div key={i} style={{ background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 12, padding: '16px 20px' }}>
                     {q.section && (
-                      <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{q.section}</div>
+                      <div style={{ fontSize: 11, color: '#9B8E82', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{q.section}</div>
                     )}
-                    <div style={{ fontSize: 14, color: '#e5e5e5', lineHeight: 1.6 }}>{q.question}</div>
+                    <div style={{ fontSize: 14, color: '#1a1a1a', lineHeight: 1.6 }}>{q.question}</div>
                   </div>
                 ))}
               </div>
@@ -849,12 +849,12 @@ export default function SegmentContainerPage() {
         {activeTab === 'exam-questions' && (
           <div>
             {quizLoading ? (
-              <div style={{ color: '#888', padding: '40px 0', textAlign: 'center' }}>Loading practice questions...</div>
+              <div style={{ color: '#9B8E82', padding: '40px 0', textAlign: 'center' }}>Loading practice questions...</div>
             ) : !quizQuestions || quizQuestions.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}><p>No practice questions available yet.</p></div>
+              <div style={{ textAlign: 'center', padding: '60px 0', color: '#6B6B6B' }}><p>No practice questions available yet.</p></div>
             ) : quizFinished ? (
               <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                <div style={{ fontSize: 13, color: '#666', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Score</div>
+                <div style={{ fontSize: 13, color: '#9B8E82', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Your Score</div>
                 <div style={{
                   fontFamily: "var(--font-display), 'Lora', serif", fontSize: 48, fontWeight: 600, marginTop: 8,
                   color: quizScore / quizQuestions.length >= 0.8 ? '#4A7C59' : quizScore / quizQuestions.length >= 0.6 ? '#C4972A' : '#C44A2A',
@@ -863,27 +863,27 @@ export default function SegmentContainerPage() {
                 </div>
                 <button onClick={handleQuizReset} style={{
                   marginTop: 24, padding: '10px 24px', borderRadius: 8,
-                  background: '#222', border: '1px solid #333', color: '#e5e5e5', cursor: 'pointer', fontSize: 14,
+                  background: '#E8E4DA', border: '1px solid #E8E4DA', color: '#1a1a1a', cursor: 'pointer', fontSize: 14,
                 }}>
                   Try Again
                 </button>
               </div>
             ) : quizCurrent ? (
               <div>
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 12 }}>
+                <div style={{ fontSize: 12, color: '#9B8E82', marginBottom: 12 }}>
                   Question {quizIndex + 1} of {quizQuestions.length}
                 </div>
-                <div style={{ fontSize: 15, color: '#e5e5e5', lineHeight: 1.6, marginBottom: 20 }}>
+                <div style={{ fontSize: 15, color: '#1a1a1a', lineHeight: 1.6, marginBottom: 20 }}>
                   {quizCurrent.question}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {quizLetters.map((letter) => {
                     const optionText = quizCurrent.options?.[letter];
                     if (!optionText) return null;
-                    let bg = '#111'; let border = '1px solid #222'; let color = '#e5e5e5';
+                    let bg = '#ffffff'; let border = '1px solid #E8E4DA'; let color = '#1a1a1a';
                     if (quizAnswered) {
-                      if (letter === quizCurrent.correct) { bg = '#0f2918'; border = '1px solid #4A7C59'; color = '#7dcc8f'; }
-                      else if (letter === quizSelected) { bg = '#2a1010'; border = '1px solid #C44A2A'; color = '#e88'; }
+                      if (letter === quizCurrent.correct) { bg = '#f0f7f2'; border = '1px solid #4A7C59'; color = '#4A7C59'; }
+                      else if (letter === quizSelected) { bg = '#FFF0F0'; border = '1px solid #C44A2A'; color = '#C44A2A'; }
                       else { color = '#555'; }
                     } else if (letter === quizSelected) { border = '2px solid #2563eb'; }
                     return (
@@ -899,7 +899,7 @@ export default function SegmentContainerPage() {
                 {quizAnswered && (
                   <div style={{ marginTop: 16, textAlign: 'center' }}>
                     <button onClick={handleQuizNext} style={{
-                      padding: '10px 24px', borderRadius: 8, background: '#2563eb', border: 'none',
+                      padding: '10px 24px', borderRadius: 8, background: '#8B6914', border: 'none',
                       color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 500,
                     }}>
                       {quizIndex < quizQuestions.length - 1 ? 'Next Question →' : 'See Results'}
