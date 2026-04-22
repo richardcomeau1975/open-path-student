@@ -401,7 +401,7 @@ export default function PodcastPage() {
   if (loading) {
     return (
       <div style={{ padding: "40px", fontFamily: "Inter, sans-serif", color: "#6B6B6B" }}>
-        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
         Loading podcast...
       </div>
     );
@@ -410,7 +410,7 @@ export default function PodcastPage() {
   if (!content?.podcast_audio) {
     return (
       <div style={{ padding: "24px 32px", maxWidth: "800px", margin: "0 auto" }}>
-        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
         <button onClick={() => router.back()} style={backBtnStyle}>
           &larr; Back
         </button>
@@ -458,7 +458,7 @@ export default function PodcastPage() {
 
   return (
     <div style={{ padding: "24px 32px", maxWidth: "800px", margin: "0 auto" }}>
-      <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+      <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
       <button onClick={() => router.back()} style={backBtnStyle}>
         &larr; Back
       </button>
@@ -544,7 +544,7 @@ export default function PodcastPage() {
             {currentAnchor && (
               <p ref={anchorTextRef} style={{
                 fontSize: 28, fontFamily: "'Lora', serif", fontWeight: 600,
-                color: '#1a1a1a', textAlign: 'center', lineHeight: 1.35, margin: 0,
+                color: '#f5f0e8', textAlign: 'center', lineHeight: 1.35, margin: 0,
               }}>
                 {currentAnchor}
               </p>

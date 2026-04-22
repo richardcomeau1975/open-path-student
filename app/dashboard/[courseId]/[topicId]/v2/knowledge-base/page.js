@@ -56,7 +56,7 @@ export default function KnowledgeBasePage() {
           color: "#6B6B6B",
         }}
       >
-        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
         Loading knowledge base...
       </div>
     );
@@ -126,7 +126,7 @@ export default function KnowledgeBasePage() {
           padding: "24px 28px",
           fontFamily: "Inter, sans-serif",
           fontSize: "15px",
-          color: "#1a1a1a",
+          color: "#f5f0e8",
           lineHeight: 1.8,
           whiteSpace: "pre-wrap",
         }}

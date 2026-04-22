@@ -143,7 +143,7 @@ export default function WalkGapsPage() {
   if (gaps.length === 0) {
     return (
       <div style={{ padding: '2rem', maxWidth: 700, margin: '0 auto' }}>
-        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
         <div onClick={() => router.back()} style={{ fontSize: 13, color: '#6B6B6B', cursor: 'pointer', marginBottom: '1rem' }}>
           &larr; Back
         </div>

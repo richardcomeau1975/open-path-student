@@ -90,7 +90,7 @@ export default function HowTestedPage() {
           color: "#6B6B6B",
         }}
       >
-        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
         Loading...
       </div>
     );
@@ -159,7 +159,7 @@ export default function HowTestedPage() {
           style={{
             display: "inline-block",
             padding: "12px 28px",
-            background: uploading ? "#ccc" : "#9B8E82",
+            background: uploading ? "#4a4a4a" : "#9B8E82",
             color: "#fff",
             borderRadius: "8px",
             cursor: uploading ? "not-allowed" : "pointer",
@@ -201,7 +201,7 @@ export default function HowTestedPage() {
               padding: "10px 20px",
               fontFamily: "Inter, sans-serif",
               fontSize: "14px",
-              color: "#1a1a1a",
+              color: "#f5f0e8",
               cursor: "pointer",
               marginBottom: "16px",
             }}
@@ -218,7 +218,7 @@ export default function HowTestedPage() {
                 padding: "24px",
                 fontFamily: "Inter, sans-serif",
                 fontSize: "15px",
-                color: "#1a1a1a",
+                color: "#f5f0e8",
                 lineHeight: 1.8,
                 whiteSpace: "pre-wrap",
               }}

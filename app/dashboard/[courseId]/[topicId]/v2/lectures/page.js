@@ -37,11 +37,11 @@ export default function LecturesPage() {
 
   if (loading) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
+      <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a' }}>
         <Header />
-        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
-          <p style={{ color: '#888' }}>Loading lectures...</p>
+          <p style={{ color: '#9B8E82' }}>Loading lectures...</p>
         </div>
       </div>
     );
@@ -60,7 +60,7 @@ export default function LecturesPage() {
     : 0;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
+    <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a' }}>
       <Header />
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
         <BackButton href={`/dashboard/${courseId}/${topicId}/v2`} />
@@ -72,7 +72,7 @@ export default function LecturesPage() {
           Lectures
         </h1>
         {segments && (
-          <p style={{ color: '#888', fontSize: 14, marginBottom: 24 }}>
+          <p style={{ color: '#9B8E82', fontSize: 14, marginBottom: 24 }}>
             {segments.length} segment{segments.length !== 1 ? 's' : ''}
             {totalDuration > 0 ? ` · ${formatDuration(totalDuration)} total` : ''}
           </p>
@@ -100,7 +100,7 @@ export default function LecturesPage() {
         )}
 
         {!segments ? (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#666' }}>
+          <div style={{ textAlign: 'center', padding: '60px 0', color: '#6B6B6B' }}>
             <p>No lecture segments generated yet.</p>
             <p style={{ fontSize: 13, marginTop: 8 }}>Generate a lecture script from the admin toolbar to create segments.</p>
           </div>
@@ -114,8 +114,8 @@ export default function LecturesPage() {
                 <div
                   key={seg.number}
                   style={{
-                    background: '#111',
-                    border: '1px solid #222',
+                    background: '#ffffff',
+                    border: '1px solid #E8E4DA',
                     borderRadius: 12,
                     padding: '20px 24px',
                   }}
@@ -127,22 +127,22 @@ export default function LecturesPage() {
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span style={{
-                        fontSize: 20, color: seg.audio ? '#2563eb' : '#444',
+                        fontSize: 20, color: seg.audio ? '#8B6914' : '#444',
                       }}>
                         ▶
                       </span>
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 600, color: '#e5e5e5' }}>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a' }}>
                           Lecture {seg.number}
                         </div>
                         <div style={{
-                          fontSize: 13, color: '#aaa', marginTop: 2,
+                          fontSize: 13, color: '#6B6B6B', marginTop: 2,
                           maxWidth: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
                           {title}
                         </div>
                         {duration && (
-                          <div style={{ fontSize: 12, color: '#666', marginTop: 2 }}>
+                          <div style={{ fontSize: 12, color: '#6B6B6B', marginTop: 2 }}>
                             {duration}
                           </div>
                         )}
@@ -154,12 +154,12 @@ export default function LecturesPage() {
                   <div
                     onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2/lectures/${seg.number}/tutorial`)}
                     style={{
-                      marginTop: 12, paddingTop: 12, borderTop: '1px solid #1a1a1a',
+                      marginTop: 12, paddingTop: 12, borderTop: '1px solid #f5f0e8',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
                     }}
                   >
                     <span style={{ fontSize: 14, color: '#555' }}>○</span>
-                    <span style={{ fontSize: 13, color: '#888' }}>Tutorial</span>
+                    <span style={{ fontSize: 13, color: '#9B8E82' }}>Tutorial</span>
                   </div>
                 </div>
               );

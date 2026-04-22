@@ -152,7 +152,7 @@ export default function NoteChartPage() {
           color: "#6B6B6B",
         }}
       >
-        <div style={{ position: 'fixed', top: 12, right: 16, background: '#2563eb', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
+        <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
         Loading active recall...
       </div>
     );
@@ -254,7 +254,7 @@ export default function NoteChartPage() {
                   fontFamily: "Inter, sans-serif",
                   fontSize: "15px",
                   fontWeight: 500,
-                  color: "#1a1a1a",
+                  color: "#f5f0e8",
                   marginBottom: "10px",
                 }}
               >
@@ -272,7 +272,7 @@ export default function NoteChartPage() {
                   borderRadius: "8px",
                   fontFamily: "Inter, sans-serif",
                   fontSize: "14px",
-                  color: "#1a1a1a",
+                  color: "#f5f0e8",
                   resize: "vertical",
                   outline: "none",
                   background: "#FDFBF7",
