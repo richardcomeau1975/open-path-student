@@ -60,6 +60,14 @@ export default function SegmentContainerPage() {
   const [ohStarted, setOhStarted] = useState(false);
   const messagesEndRef = useRef(null);
 
+  // ── Exit Ticket state ──
+  const [etStatus, setEtStatus] = useState(null);
+  const [etTasks, setEtTasks] = useState([]);
+  const [etResponses, setEtResponses] = useState([]);
+  const [etEvaluation, setEtEvaluation] = useState(null);
+  const [etLoading, setEtLoading] = useState(false);
+  const [etLoaded, setEtLoaded] = useState(false);
+
   // ── Notes state ──
   const [notesQuestions, setNotesQuestions] = useState(null);
   const [notesLoading, setNotesLoading] = useState(false);
@@ -452,6 +460,99 @@ export default function SegmentContainerPage() {
   };
 
   // ══════════════════════════════════════════════════════════
+  // EXIT TICKET: check status lazily, start, submit
+  // ══════════════════════════════════════════════════════════
+
+  useEffect(() => {
+    if (activeTab !== 'exit-ticket' || etLoaded || !isLoaded) return;
+    setEtLoaded(true);
+    async function checkStatus() {
+      try {
+        const token = await getToken();
+        const res = await fetch(
+          `${API}/api/exit-ticket/${topicId}/status?segment_number=${segmentNum}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const data = await res.json();
+        setEtStatus(data.status);
+        if (data.result) {
+          setEtTasks(data.result.tasks || []);
+          if (data.result.responses) {
+            setEtResponses(data.result.responses);
+          } else {
+            setEtResponses((data.result.tasks || []).map(() => ''));
+          }
+          setEtEvaluation(data.result.evaluation || null);
+        }
+      } catch (err) {
+        console.error('Failed to check exit ticket status:', err);
+        setEtStatus('not_started');
+      }
+    }
+    checkStatus();
+  }, [activeTab, isLoaded]);
+
+  async function etStart() {
+    setEtLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/api/exit-ticket/${topicId}/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ segment_number: parseInt(segmentNum, 10) }),
+      });
+      const data = await res.json();
+      if (data.result) {
+        setEtTasks(data.result.tasks || []);
+        setEtResponses((data.result.tasks || []).map(() => ''));
+        setEtStatus('in_progress');
+        setEtEvaluation(null);
+      }
+    } catch (err) {
+      console.error('Failed to start exit ticket:', err);
+    }
+    setEtLoading(false);
+  }
+
+  async function etSubmit() {
+    const hasEmpty = etResponses.some(r => !r.trim());
+    if (hasEmpty) return;
+    setEtLoading(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/api/exit-ticket/${topicId}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          segment_number: parseInt(segmentNum, 10),
+          responses: etResponses,
+        }),
+      });
+      const data = await res.json();
+      if (data.result) {
+        setEtEvaluation(data.result.evaluation);
+        setEtStatus(data.result.status);
+      }
+    } catch (err) {
+      console.error('Failed to submit exit ticket:', err);
+    }
+    setEtLoading(false);
+  }
+
+  function etRetry() {
+    setEtStatus('not_started');
+    setEtTasks([]);
+    setEtResponses([]);
+    setEtEvaluation(null);
+    setEtLoaded(false);
+  }
+
+  function etGoToOfficeHours(prompt) {
+    setOhInput(prompt);
+    setActiveTab('office-hours');
+  }
+
+  // ══════════════════════════════════════════════════════════
   // NOTES: load lazily
   // ══════════════════════════════════════════════════════════
 
@@ -810,12 +911,215 @@ export default function SegmentContainerPage() {
         )}
 
         {/* ════════════════════════════════════════════════════════
-            TAB: Exit Ticket (placeholder)
+            TAB: Exit Ticket
             ════════════════════════════════════════════════════════ */}
         {activeTab === 'exit-ticket' && (
-          <div style={{ textAlign: 'center', padding: '60px 0', color: '#6B6B6B' }}>
-            <p style={{ fontSize: 16, marginBottom: 8 }}>Exit Ticket</p>
-            <p style={{ fontSize: 14 }}>Coming soon</p>
+          <div>
+            {/* Not started */}
+            {(etStatus === 'not_started' || etStatus === null) && !etLoading && (
+              <div style={{ textAlign: 'center', padding: '60px 0' }}>
+                <p style={{
+                  fontFamily: "var(--font-display), 'Lora', serif",
+                  fontSize: 18, fontWeight: 600, color: '#1a1a1a', marginBottom: 12,
+                }}>
+                  Ready to show what you know?
+                </p>
+                <p style={{ fontSize: 14, color: '#6B6B6B', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
+                  The exit ticket checks whether you can use the material from this segment — not just remember it.
+                </p>
+                <button
+                  onClick={etStart}
+                  style={{
+                    padding: '12px 32px', borderRadius: 8,
+                    background: '#8B6914', border: 'none',
+                    color: '#fff', cursor: 'pointer',
+                    fontSize: 15, fontWeight: 500,
+                  }}
+                >
+                  Begin Exit Ticket
+                </button>
+              </div>
+            )}
+
+            {/* Loading */}
+            {etLoading && (
+              <div style={{ textAlign: 'center', padding: '60px 0', color: '#9B8E82' }}>
+                <p style={{ fontSize: 14 }}>
+                  {etStatus === 'in_progress' && etEvaluation === null ? 'Evaluating your responses...' : 'Generating tasks...'}
+                </p>
+              </div>
+            )}
+
+            {/* Tasks — in progress, no evaluation yet */}
+            {etStatus === 'in_progress' && !etEvaluation && !etLoading && etTasks.length > 0 && (
+              <div>
+                <div style={{ marginBottom: 24 }}>
+                  <p style={{ fontSize: 13, color: '#9B8E82', marginBottom: 4 }}>
+                    {etTasks.length} task{etTasks.length !== 1 ? 's' : ''} — take your time
+                  </p>
+                </div>
+
+                {etTasks.map((task, i) => {
+                  const taskText = typeof task === 'string' ? task : task.task || '';
+                  return (
+                    <div key={i} style={{
+                      marginBottom: 24, background: '#ffffff',
+                      border: '1px solid #E8E4DA', borderRadius: 12, padding: '20px 24px',
+                    }}>
+                      <div style={{ fontSize: 13, color: '#9B8E82', marginBottom: 8 }}>
+                        Task {i + 1}
+                      </div>
+                      <div style={{ fontSize: 15, color: '#1a1a1a', lineHeight: 1.6, marginBottom: 16 }}>
+                        {taskText}
+                      </div>
+                      <textarea
+                        value={etResponses[i] || ''}
+                        onChange={(e) => {
+                          const updated = [...etResponses];
+                          updated[i] = e.target.value;
+                          setEtResponses(updated);
+                        }}
+                        placeholder="Explain your thinking..."
+                        rows={5}
+                        style={{
+                          width: '100%', padding: '12px 14px', borderRadius: 8,
+                          border: '1px solid #E8E4DA', background: '#fdfbf7',
+                          color: '#1a1a1a', fontSize: 14, lineHeight: 1.6,
+                          outline: 'none', resize: 'vertical',
+                          fontFamily: 'Inter, sans-serif',
+                        }}
+                      />
+                    </div>
+                  );
+                })}
+
+                <div style={{ textAlign: 'center', marginTop: 8 }}>
+                  <button
+                    onClick={etSubmit}
+                    disabled={etResponses.some(r => !r.trim())}
+                    style={{
+                      padding: '12px 32px', borderRadius: 8,
+                      background: etResponses.every(r => r.trim()) ? '#8B6914' : '#E8E4DA',
+                      color: etResponses.every(r => r.trim()) ? '#fff' : '#9B8E82',
+                      border: 'none',
+                      cursor: etResponses.every(r => r.trim()) ? 'pointer' : 'default',
+                      fontSize: 15, fontWeight: 500,
+                    }}
+                  >
+                    Submit
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Evaluation — pass or incomplete */}
+            {etEvaluation && !etLoading && (
+              <div>
+                {/* Status banner */}
+                <div style={{
+                  padding: '16px 20px', borderRadius: 12, marginBottom: 24,
+                  background: etStatus === 'pass' ? '#f0f7f2' : '#FFF8F0',
+                  border: etStatus === 'pass' ? '1px solid #4A7C59' : '1px solid #C4972A',
+                }}>
+                  <div style={{
+                    fontSize: 16, fontWeight: 600,
+                    color: etStatus === 'pass' ? '#4A7C59' : '#8B6914',
+                  }}>
+                    {etStatus === 'pass' ? 'Segment complete' : 'Almost there — specific gaps remain'}
+                  </div>
+                </div>
+
+                {/* Demonstrated */}
+                {etEvaluation.demonstrated && (
+                  <div style={{
+                    background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 12,
+                    padding: '20px 24px', marginBottom: 16,
+                  }}>
+                    <div style={{
+                      fontSize: 13, color: '#4A7C59', fontWeight: 600,
+                      textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10,
+                    }}>
+                      What you demonstrated
+                    </div>
+                    <div style={{ fontSize: 14, color: '#1a1a1a', lineHeight: 1.7 }}>
+                      {etEvaluation.demonstrated}
+                    </div>
+                  </div>
+                )}
+
+                {/* Not there yet */}
+                {etEvaluation.not_there_yet && (
+                  <div style={{
+                    background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 12,
+                    padding: '20px 24px', marginBottom: 16,
+                  }}>
+                    <div style={{
+                      fontSize: 13, color: '#8B6914', fontWeight: 600,
+                      textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10,
+                    }}>
+                      Not there yet
+                    </div>
+                    <div style={{ fontSize: 14, color: '#1a1a1a', lineHeight: 1.7 }}>
+                      {etEvaluation.not_there_yet}
+                    </div>
+                  </div>
+                )}
+
+                {/* Take this to Office Hours */}
+                {etEvaluation.office_hours_prompt && (
+                  <div
+                    onClick={() => etGoToOfficeHours(etEvaluation.office_hours_prompt)}
+                    style={{
+                      background: '#f5f0e8', border: '1px solid #E8E4DA', borderRadius: 12,
+                      padding: '20px 24px', marginBottom: 16, cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{
+                      fontSize: 13, color: '#8B6914', fontWeight: 600,
+                      textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10,
+                    }}>
+                      Take this to Office Hours →
+                    </div>
+                    <div style={{
+                      fontSize: 14, color: '#4a4a4a', lineHeight: 1.7, fontStyle: 'italic',
+                    }}>
+                      "{etEvaluation.office_hours_prompt}"
+                    </div>
+                    <div style={{ fontSize: 12, color: '#9B8E82', marginTop: 8 }}>
+                      Click to open Office Hours with this question ready
+                    </div>
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div style={{ textAlign: 'center', marginTop: 24, display: 'flex', gap: 16, justifyContent: 'center' }}>
+                  {etStatus === 'incomplete' && (
+                    <button
+                      onClick={etRetry}
+                      style={{
+                        padding: '10px 24px', borderRadius: 8,
+                        background: '#ffffff', border: '1px solid #E8E4DA',
+                        color: '#1a1a1a', cursor: 'pointer', fontSize: 14,
+                      }}
+                    >
+                      Try Again
+                    </button>
+                  )}
+                  {etStatus === 'pass' && totalSegments && parseInt(segmentNum, 10) < totalSegments && (
+                    <button
+                      onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2/lectures/${parseInt(segmentNum, 10) + 1}`)}
+                      style={{
+                        padding: '10px 24px', borderRadius: 8,
+                        background: '#8B6914', border: 'none',
+                        color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 500,
+                      }}
+                    >
+                      Next Segment →
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
