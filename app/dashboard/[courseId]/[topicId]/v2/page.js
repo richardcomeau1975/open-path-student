@@ -15,6 +15,7 @@ export default function TopicDashboard() {
   const { getToken, isLoaded } = useAuth();
   const { isAdmin } = useAdmin();
   const [dashboard, setDashboard] = useState(null);
+  const [segments, setSegments] = useState([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,12 +25,12 @@ export default function TopicDashboard() {
     async function load() {
       try {
         const token = await getToken();
-        const data = await apiFetch(
-          `/api/topics/${topicId}/dashboard`,
-          {},
-          token
-        );
+        const [data, content] = await Promise.all([
+          apiFetch(`/api/topics/${topicId}/dashboard`, {}, token),
+          apiFetch(`/api/topics/${topicId}/content`, {}, token).catch(() => null),
+        ]);
         setDashboard(data);
+        setSegments(content?.lecture_segments || []);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -50,6 +51,9 @@ export default function TopicDashboard() {
   if (!dashboard) return null;
 
   const { topic, features } = dashboard;
+
+  // Filter Visual Overview out of the FeatureCard grid — it's replaced by the Topic Introduction section below.
+  const gridFeatures = features.filter((f) => f.key !== "visual_overview");
 
   return (
     <div>
@@ -84,6 +88,60 @@ export default function TopicDashboard() {
           onRefresh={() => setRefreshKey(k => k + 1)} />
       )}
 
+      {/* ──────── Topic Introduction ──────── */}
+      <div style={{
+        background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 12,
+        padding: '28px 32px', marginBottom: 32,
+      }}>
+        <div style={{ fontSize: 13, color: '#8B6914', fontWeight: 500, letterSpacing: '0.5px', marginBottom: 16 }}>
+          TOPIC INTRODUCTION
+        </div>
+
+        {/* Layer 1: Children's Question */}
+        <div style={{
+          fontFamily: "var(--font-display), 'Lora', serif",
+          fontSize: 22, fontWeight: 600, fontStyle: 'italic',
+          color: '#1a1a1a', lineHeight: 1.4,
+          marginBottom: 20,
+        }}>
+          [Children's question TBD — e.g. "What's at the bottom of the ocean — and why was everyone wrong about it for centuries?"]
+        </div>
+
+        {/* Layer 2: What Knowing This Means */}
+        <div style={{
+          fontSize: 15, color: '#4a4a4a', lineHeight: 1.7,
+          marginBottom: 24, paddingBottom: 20,
+          borderBottom: '1px solid #E8E4DA',
+        }}>
+          [Capability statement TBD — e.g. "After this, you'll be able to explain why the deepest part of the ocean isn't in the middle — and what that tells you about how the entire ocean floor moves."]
+        </div>
+
+        {/* Layer 3: Segment Map */}
+        {segments.length === 0 ? (
+          <p style={{ color: '#6B6B6B', fontSize: 14 }}>
+            Segment map will appear here once segments are generated.
+          </p>
+        ) : (
+          segments.map((seg, i) => (
+            <div key={seg.number} style={{ marginBottom: i < segments.length - 1 ? 24 : 0 }}>
+              <div style={{
+                fontSize: 15, fontWeight: 600, color: '#1a1a1a', marginBottom: 8,
+              }}>
+                Segment {seg.number}: [Question TBD]
+              </div>
+              <div style={{ paddingLeft: 16 }}>
+                <div style={{ fontSize: 14, color: '#6B6B6B', lineHeight: 1.6 }}>
+                  • [Topic bullet TBD]
+                </div>
+                <div style={{ fontSize: 14, color: '#6B6B6B', lineHeight: 1.6 }}>
+                  • [Topic bullet TBD]
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       <div
         style={{
           display: "grid",
@@ -91,7 +149,7 @@ export default function TopicDashboard() {
           gap: "20px",
         }}
       >
-        {features.map((feature) => (
+        {gridFeatures.map((feature) => (
           <FeatureCard key={feature.key} feature={feature} />
         ))}
       </div>

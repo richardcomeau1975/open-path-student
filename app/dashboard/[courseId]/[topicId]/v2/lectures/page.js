@@ -133,13 +133,13 @@ export default function LecturesPage() {
                       </span>
                       <div>
                         <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a' }}>
-                          Lecture {seg.number}
+                          Segment {seg.number}
                         </div>
                         <div style={{
                           fontSize: 13, color: '#6B6B6B', marginTop: 2,
                           maxWidth: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
-                          {title}
+                          [Question TBD]
                         </div>
                         {duration && (
                           <div style={{ fontSize: 12, color: '#6B6B6B', marginTop: 2 }}>
@@ -148,18 +148,6 @@ export default function LecturesPage() {
                         )}
                       </div>
                     </div>
-                  </div>
-
-                  {/* Tutorial link */}
-                  <div
-                    onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2/lectures/${seg.number}/tutorial`)}
-                    style={{
-                      marginTop: 12, paddingTop: 12, borderTop: '1px solid #f5f0e8',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
-                    }}
-                  >
-                    <span style={{ fontSize: 14, color: '#555' }}>○</span>
-                    <span style={{ fontSize: 13, color: '#9B8E82' }}>Tutorial</span>
                   </div>
                 </div>
               );
