@@ -339,10 +339,10 @@ export default function LecturePlayerPage() {
 
   if (!seg) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
+      <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a' }}>
         <Header />
         <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px' }}>
-          <p style={{ color: '#888' }}>Loading...</p>
+          <p style={{ color: '#9B8E82' }}>Loading...</p>
         </div>
       </div>
     );
@@ -351,12 +351,12 @@ export default function LecturePlayerPage() {
   const title = seg.anchors?.[0] || `Segment ${seg.number}`;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
+    <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a' }}>
       <Header />
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px' }}>
         <BackButton href={`/dashboard/${courseId}/${topicId}/lectures`} />
 
-        <div style={{ fontSize: 13, color: '#666', marginTop: 12 }}>
+        <div style={{ fontSize: 13, color: '#6B6B6B', marginTop: 12 }}>
           Lecture {seg.number}{segments ? ` of ${segments.length}` : ''}
         </div>
 
@@ -364,7 +364,7 @@ export default function LecturePlayerPage() {
         <div style={{
           position: 'relative', width: '100%', aspectRatio: '3/2',
           borderRadius: 12, overflow: 'hidden', marginTop: 12, marginBottom: 16,
-          background: '#111',
+          background: '#ffffff',
         }}>
           {seg.image && (
             <img
@@ -391,7 +391,7 @@ export default function LecturePlayerPage() {
               <p style={{
                 fontFamily: "var(--font-display), 'Lora', serif",
                 fontSize: 22, fontWeight: 500, fontStyle: 'italic',
-                color: '#e5e5e5', textAlign: 'center', lineHeight: 1.4,
+                color: '#1a1a1a', textAlign: 'center', lineHeight: 1.4,
                 textShadow: '0 2px 8px rgba(0,0,0,0.8)',
               }}>
                 {activeAnchor}
@@ -417,7 +417,7 @@ export default function LecturePlayerPage() {
             disabled={!seg.audio}
             style={{
               width: 44, height: 44, borderRadius: '50%',
-              background: seg.audio ? '#2563eb' : '#333',
+              background: seg.audio ? '#8B6914' : '#E8E4DA',
               border: 'none', color: '#fff', fontSize: 18, cursor: seg.audio ? 'pointer' : 'default',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}
@@ -428,28 +428,28 @@ export default function LecturePlayerPage() {
           <div
             onClick={handleProgressClick}
             style={{
-              flex: 1, height: 6, background: '#222', borderRadius: 3,
+              flex: 1, height: 6, background: '#E8E4DA', borderRadius: 3,
               cursor: 'pointer', position: 'relative',
             }}
           >
             <div style={{
               width: `${duration ? (currentTime / duration) * 100 : 0}%`,
-              height: '100%', background: '#2563eb', borderRadius: 3,
+              height: '100%', background: '#8B6914', borderRadius: 3,
               transition: 'width 0.1s',
             }} />
           </div>
 
-          <span style={{ fontSize: 12, color: '#666', flexShrink: 0 }}>
+          <span style={{ fontSize: 12, color: '#6B6B6B', flexShrink: 0 }}>
             {fmt(currentTime)} / {fmt(duration)}
           </span>
         </div>
 
         {/* Q&A section */}
-        <div style={{ borderTop: '1px solid #222', paddingTop: 16, marginBottom: 16 }}>
+        <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 16, marginBottom: 16 }}>
           {qaResponse && (
             <div style={{
-              background: '#111', border: '1px solid #222', borderRadius: 8,
-              padding: '12px 16px', fontSize: 14, color: '#ccc', lineHeight: 1.5,
+              background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 8,
+              padding: '12px 16px', fontSize: 14, color: '#4a4a4a', lineHeight: 1.5,
               marginBottom: 12, whiteSpace: 'pre-wrap',
             }}>
               {qaResponse}
@@ -473,9 +473,9 @@ export default function LecturePlayerPage() {
               }}
               style={{
                 marginTop: 8, padding: '8px 20px',
-                background: '#1a1a1a', border: '1px solid #333',
+                background: '#f5f0e8', border: '1px solid #E8E4DA',
                 borderRadius: 8, fontSize: 13, cursor: 'pointer',
-                color: '#888',
+                color: '#9B8E82',
               }}
             >
               Got it — stop
@@ -491,8 +491,8 @@ export default function LecturePlayerPage() {
               style={{
                 width: 44, height: 44, borderRadius: '50%',
                 border: qaState === 'recording' ? '2px solid #ef4444' : '2px solid #444',
-                background: qaState === 'recording' ? '#991b1b' : '#1a1a1a',
-                color: qaState === 'recording' ? '#fca5a5' : '#888',
+                background: qaState === 'recording' ? '#991b1b' : '#f5f0e8',
+                color: qaState === 'recording' ? '#fca5a5' : '#9B8E82',
                 cursor: qaCount >= MAX_QUESTIONS ? 'default' : 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 18, flexShrink: 0,
@@ -518,8 +518,8 @@ export default function LecturePlayerPage() {
               disabled={qaLoading || qaCount >= MAX_QUESTIONS}
               style={{
                 flex: 1, padding: '10px 14px', borderRadius: 8,
-                border: '1px solid #333', background: '#111',
-                color: '#e5e5e5', fontSize: 14, outline: 'none',
+                border: '1px solid #E8E4DA', background: '#ffffff',
+                color: '#1a1a1a', fontSize: 14, outline: 'none',
               }}
             />
 
@@ -529,8 +529,8 @@ export default function LecturePlayerPage() {
               disabled={!qaInput.trim() || qaLoading || qaCount >= MAX_QUESTIONS}
               style={{
                 padding: '10px 16px', borderRadius: 8,
-                background: qaInput.trim() && !qaLoading ? '#2563eb' : '#222',
-                color: qaInput.trim() && !qaLoading ? '#fff' : '#666',
+                background: qaInput.trim() && !qaLoading ? '#8B6914' : '#E8E4DA',
+                color: qaInput.trim() && !qaLoading ? '#fff' : '#6B6B6B',
                 border: 'none', cursor: qaInput.trim() && !qaLoading ? 'pointer' : 'default',
                 fontSize: 14, fontWeight: 500, flexShrink: 0,
               }}
@@ -539,7 +539,7 @@ export default function LecturePlayerPage() {
             </button>
           </div>
           {qaCount > 0 && qaCount < MAX_QUESTIONS && (
-            <div style={{ fontSize: 12, color: '#555', marginTop: 6 }}>
+            <div style={{ fontSize: 12, color: '#9B8E82', marginTop: 6 }}>
               {MAX_QUESTIONS - qaCount} question{MAX_QUESTIONS - qaCount !== 1 ? 's' : ''} remaining
             </div>
           )}
@@ -548,14 +548,14 @@ export default function LecturePlayerPage() {
         {/* Navigation */}
         <div style={{
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          borderTop: '1px solid #222', paddingTop: 16,
+          borderTop: '1px solid #E8E4DA', paddingTop: 16,
         }}>
           {prevSeg !== null ? (
             <button
               onClick={() => router.push(`/dashboard/${courseId}/${topicId}/lectures/${prevSeg}`)}
               style={{
-                padding: '8px 16px', borderRadius: 8, background: '#111',
-                border: '1px solid #333', color: '#888', cursor: 'pointer', fontSize: 13,
+                padding: '8px 16px', borderRadius: 8, background: '#ffffff',
+                border: '1px solid #E8E4DA', color: '#9B8E82', cursor: 'pointer', fontSize: 13,
               }}
             >
               ← Previous
@@ -566,7 +566,7 @@ export default function LecturePlayerPage() {
             <button
               onClick={() => router.push(`/dashboard/${courseId}/${topicId}/lectures/${seg.number}/tutorial`)}
               style={{
-                padding: '10px 20px', borderRadius: 8, background: '#2563eb',
+                padding: '10px 20px', borderRadius: 8, background: '#8B6914',
                 border: 'none', color: '#fff', cursor: 'pointer', fontSize: 14, fontWeight: 500,
               }}
             >
@@ -578,8 +578,8 @@ export default function LecturePlayerPage() {
             <button
               onClick={() => router.push(`/dashboard/${courseId}/${topicId}/lectures/${nextSeg}`)}
               style={{
-                padding: '8px 16px', borderRadius: 8, background: '#111',
-                border: '1px solid #333', color: '#888', cursor: 'pointer', fontSize: 13,
+                padding: '8px 16px', borderRadius: 8, background: '#ffffff',
+                border: '1px solid #E8E4DA', color: '#9B8E82', cursor: 'pointer', fontSize: 13,
               }}
             >
               Next →

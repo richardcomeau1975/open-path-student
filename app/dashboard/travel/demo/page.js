@@ -177,20 +177,20 @@ export default function TravelDemoPage() {
   }, []);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5' }}>
+    <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a' }}>
       <Header />
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px', display: 'flex', flexDirection: 'column', height: 'calc(100vh - 64px)' }}>
 
         {/* Title */}
-        <div style={{ marginBottom: 16, borderBottom: '1px solid #222', paddingBottom: 12 }}>
+        <div style={{ marginBottom: 16, borderBottom: '1px solid #E8E4DA', paddingBottom: 12 }}>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: '#fff' }}>SAM — Destination Intelligence</h1>
-          <p style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Caribbean destination briefings for travel advisors</p>
+          <p style={{ fontSize: 13, color: '#9B8E82', marginTop: 4 }}>Caribbean destination briefings for travel advisors</p>
         </div>
 
         {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 16 }}>
           {messages.length === 0 && !isLoading && (
-            <div style={{ color: '#666', fontSize: 14, textAlign: 'center', marginTop: 80 }}>
+            <div style={{ color: '#6B6B6B', fontSize: 14, textAlign: 'center', marginTop: 80 }}>
               Ask me about a destination, a client scenario, property status, or anything you need for a call.
             </div>
           )}
@@ -205,9 +205,9 @@ export default function TravelDemoPage() {
                 borderRadius: 12,
                 fontSize: 14,
                 lineHeight: 1.5,
-                background: msg.role === 'user' ? '#1a3a5c' : '#1a1a1a',
-                border: msg.role === 'user' ? '1px solid #2a4a6c' : '1px solid #2a2a2a',
-                color: '#e5e5e5',
+                background: msg.role === 'user' ? '#f0ebe0' : '#f5f0e8',
+                border: msg.role === 'user' ? '1px solid #E8E4DA' : '1px solid #2a2a2a',
+                color: '#1a1a1a',
                 whiteSpace: 'pre-wrap',
               }}
             >
@@ -225,9 +225,9 @@ export default function TravelDemoPage() {
                 borderRadius: 12,
                 fontSize: 14,
                 lineHeight: 1.5,
-                background: '#1a1a1a',
+                background: '#f5f0e8',
                 border: '1px solid #2a2a2a',
-                color: '#e5e5e5',
+                color: '#1a1a1a',
                 whiteSpace: 'pre-wrap',
               }}
             >
@@ -237,7 +237,7 @@ export default function TravelDemoPage() {
           )}
 
           {isLoading && !currentText && (
-            <div style={{ alignSelf: 'flex-start', color: '#666', fontSize: 13, padding: '8px 14px' }}>
+            <div style={{ alignSelf: 'flex-start', color: '#6B6B6B', fontSize: 13, padding: '8px 14px' }}>
               Thinking...
             </div>
           )}
@@ -248,7 +248,7 @@ export default function TravelDemoPage() {
         {/* Input bar */}
         <div style={{
           display: 'flex', gap: 8, alignItems: 'center',
-          padding: '12px 0', borderTop: '1px solid #222',
+          padding: '12px 0', borderTop: '1px solid #E8E4DA',
         }}>
           {/* Mic button */}
           <button
@@ -257,8 +257,8 @@ export default function TravelDemoPage() {
             style={{
               width: 44, height: 44, borderRadius: '50%',
               border: isRecording ? '2px solid #ef4444' : '2px solid #444',
-              background: isRecording ? '#991b1b' : '#1a1a1a',
-              color: isRecording ? '#fca5a5' : '#888',
+              background: isRecording ? '#991b1b' : '#f5f0e8',
+              color: isRecording ? '#fca5a5' : '#9B8E82',
               cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 18, flexShrink: 0,
@@ -279,8 +279,8 @@ export default function TravelDemoPage() {
             disabled={isLoading}
             style={{
               flex: 1, padding: '10px 14px', borderRadius: 8,
-              border: '1px solid #333', background: '#111',
-              color: '#e5e5e5', fontSize: 14, outline: 'none',
+              border: '1px solid #E8E4DA', background: '#ffffff',
+              color: '#1a1a1a', fontSize: 14, outline: 'none',
             }}
           />
 
@@ -290,8 +290,8 @@ export default function TravelDemoPage() {
             disabled={isLoading || !input.trim()}
             style={{
               padding: '10px 16px', borderRadius: 8,
-              background: input.trim() ? '#2563eb' : '#222',
-              color: input.trim() ? '#fff' : '#666',
+              background: input.trim() ? '#8B6914' : '#E8E4DA',
+              color: input.trim() ? '#fff' : '#6B6B6B',
               border: 'none', cursor: input.trim() ? 'pointer' : 'default',
               fontSize: 14, fontWeight: 500, flexShrink: 0,
             }}
@@ -305,8 +305,8 @@ export default function TravelDemoPage() {
               onClick={stopAudio}
               style={{
                 padding: '10px 12px', borderRadius: 8,
-                background: '#1a1a1a', border: '1px solid #444',
-                color: '#888', cursor: 'pointer', fontSize: 13, flexShrink: 0,
+                background: '#f5f0e8', border: '1px solid #444',
+                color: '#9B8E82', cursor: 'pointer', fontSize: 13, flexShrink: 0,
               }}
             >
               ⏹

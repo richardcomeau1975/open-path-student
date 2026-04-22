@@ -81,7 +81,7 @@ export default function CoursesPage() {
       </div>
 
       {/* Demos */}
-      <div style={{ marginTop: 48, borderTop: '1px solid #222', paddingTop: 24 }}>
+      <div style={{ marginTop: 48, borderTop: '1px solid #E8E4DA', paddingTop: 24 }}>
         <h2
           style={{
             fontFamily: "var(--font-display), 'Lora', serif",
@@ -100,15 +100,15 @@ export default function CoursesPage() {
               display: 'block',
               padding: '16px 20px',
               borderRadius: 12,
-              background: '#111',
+              background: '#ffffff',
               border: '1px solid #2a2a2a',
-              color: '#e5e5e5',
+              color: '#1a1a1a',
               textDecoration: 'none',
               width: 280,
             }}
           >
             <div style={{ fontSize: 15, fontWeight: 600 }}>SAM — Travel Advisor</div>
-            <div style={{ fontSize: 13, color: '#888', marginTop: 4 }}>Caribbean destination intelligence</div>
+            <div style={{ fontSize: 13, color: '#9B8E82', marginTop: 4 }}>Caribbean destination intelligence</div>
           </Link>
         </div>
       </div>

@@ -145,12 +145,12 @@ export default function SegmentTutorialPage() {
   const hasNextSeg = totalSegments && nextSegNum <= totalSegments;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', color: '#e5e5e5', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a', display: 'flex', flexDirection: 'column' }}>
       <Header />
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 16px', flex: 1, display: 'flex', flexDirection: 'column', width: '100%' }}>
         <BackButton href={`/dashboard/${courseId}/${topicId}/lectures/${segmentNum}`} />
 
-        <div style={{ fontSize: 13, color: '#666', marginTop: 8, marginBottom: 16 }}>
+        <div style={{ fontSize: 13, color: '#6B6B6B', marginTop: 8, marginBottom: 16 }}>
           Tutorial — Segment {segmentNum}
         </div>
 
@@ -165,9 +165,9 @@ export default function SegmentTutorialPage() {
                 padding: '10px 14px',
                 borderRadius: 12,
                 fontSize: 14, lineHeight: 1.5,
-                background: msg.role === 'user' ? '#1a3a5c' : '#111',
-                border: msg.role === 'user' ? '1px solid #2a4a6c' : '1px solid #222',
-                color: '#e5e5e5',
+                background: msg.role === 'user' ? '#f0ebe0' : '#ffffff',
+                border: msg.role === 'user' ? '1px solid #E8E4DA' : '1px solid #E8E4DA',
+                color: '#1a1a1a',
                 whiteSpace: 'pre-wrap',
               }}
             >
@@ -180,15 +180,15 @@ export default function SegmentTutorialPage() {
               alignSelf: 'flex-start', maxWidth: '85%',
               padding: '10px 14px', borderRadius: 12,
               fontSize: 14, lineHeight: 1.5,
-              background: '#111', border: '1px solid #222',
-              color: '#e5e5e5', whiteSpace: 'pre-wrap',
+              background: '#ffffff', border: '1px solid #E8E4DA',
+              color: '#1a1a1a', whiteSpace: 'pre-wrap',
             }}>
               {streamingText}<span style={{ opacity: 0.4 }}>▊</span>
             </div>
           )}
 
           {streaming && !streamingText && (
-            <div style={{ color: '#666', fontSize: 13, padding: '8px 14px' }}>
+            <div style={{ color: '#6B6B6B', fontSize: 13, padding: '8px 14px' }}>
               Thinking...
             </div>
           )}
@@ -197,7 +197,7 @@ export default function SegmentTutorialPage() {
         </div>
 
         {/* Input */}
-        <div style={{ borderTop: '1px solid #222', paddingTop: 12, paddingBottom: 12 }}>
+        <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 12, paddingBottom: 12 }}>
           <div style={{ display: 'flex', gap: 8 }}>
             <input
               type="text"
@@ -208,8 +208,8 @@ export default function SegmentTutorialPage() {
               disabled={streaming}
               style={{
                 flex: 1, padding: '10px 14px', borderRadius: 8,
-                border: '1px solid #333', background: '#111',
-                color: '#e5e5e5', fontSize: 14, outline: 'none',
+                border: '1px solid #E8E4DA', background: '#ffffff',
+                color: '#1a1a1a', fontSize: 14, outline: 'none',
               }}
             />
             <button
@@ -217,8 +217,8 @@ export default function SegmentTutorialPage() {
               disabled={!input.trim() || streaming}
               style={{
                 padding: '10px 16px', borderRadius: 8,
-                background: input.trim() ? '#2563eb' : '#222',
-                color: input.trim() ? '#fff' : '#666',
+                background: input.trim() ? '#8B6914' : '#E8E4DA',
+                color: input.trim() ? '#fff' : '#6B6B6B',
                 border: 'none', cursor: input.trim() ? 'pointer' : 'default',
                 fontSize: 14, fontWeight: 500,
               }}
@@ -239,8 +239,8 @@ export default function SegmentTutorialPage() {
               }}
               style={{
                 padding: '8px 20px', borderRadius: 8,
-                background: 'transparent', border: '1px solid #333',
-                color: '#888', cursor: 'pointer', fontSize: 13,
+                background: 'transparent', border: '1px solid #E8E4DA',
+                color: '#9B8E82', cursor: 'pointer', fontSize: 13,
               }}
             >
               {hasNextSeg
