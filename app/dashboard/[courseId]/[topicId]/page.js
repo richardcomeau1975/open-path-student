@@ -54,6 +54,29 @@ export default function TopicDashboard() {
   return (
     <div>
       <BackButton href={`/dashboard/${courseId}`} />
+      {/* v1/v2 toggle */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        marginBottom: 8, gap: 8,
+      }}>
+        <span style={{ fontSize: 12, color: '#1a1a1a', fontWeight: 500 }}>v1</span>
+        <div
+          onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2`)}
+          style={{
+            width: 44, height: 24, borderRadius: 12,
+            background: '#8B6914', cursor: 'pointer',
+            position: 'relative',
+          }}
+        >
+          <div style={{
+            width: 18, height: 18, borderRadius: '50%',
+            background: '#fff', border: '1px solid #8B6914',
+            position: 'absolute', top: 3, left: 3,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }} />
+        </div>
+        <span style={{ fontSize: 12, color: '#9B8E82', fontWeight: 500 }}>v2</span>
+      </div>
       <div style={{ marginBottom: "32px" }}>
         <h1
           style={{
@@ -104,28 +127,6 @@ export default function TopicDashboard() {
         </span>
       </div>
 
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-        marginTop: '1rem', marginBottom: '1rem', gap: 8,
-      }}>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>v1</span>
-        <div
-          onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2`)}
-          style={{
-            width: 44, height: 24, borderRadius: 12,
-            background: '#E8E4DA', cursor: 'pointer',
-            position: 'relative',
-          }}
-        >
-          <div style={{
-            width: 18, height: 18, borderRadius: '50%',
-            background: '#fff', border: '1px solid #ccc',
-            position: 'absolute', top: 3, left: 3,
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          }} />
-        </div>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>v2</span>
-      </div>
     </div>
   );
 }
