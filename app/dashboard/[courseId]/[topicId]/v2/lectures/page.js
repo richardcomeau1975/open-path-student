@@ -139,7 +139,7 @@ export default function LecturesPage() {
                           fontSize: 13, color: '#6B6B6B', marginTop: 2,
                           maxWidth: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                         }}>
-                          [Question TBD]
+                          {title}
                         </div>
                         {duration && (
                           <div style={{ fontSize: 12, color: '#6B6B6B', marginTop: 2 }}>

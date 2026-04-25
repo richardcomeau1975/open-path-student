@@ -67,6 +67,7 @@ export default function SegmentContainerPage() {
   const [etEvaluation, setEtEvaluation] = useState(null);
   const [etLoading, setEtLoading] = useState(false);
   const [etLoaded, setEtLoaded] = useState(false);
+  const [etCurrentTask, setEtCurrentTask] = useState(0);
 
   // ── Notes state ──
   const [notesQuestions, setNotesQuestions] = useState(null);
@@ -506,6 +507,7 @@ export default function SegmentContainerPage() {
         setEtTasks(data.result.tasks || []);
         setEtResponses((data.result.tasks || []).map(() => ''));
         setEtStatus('in_progress');
+        setEtCurrentTask(0);
         setEtEvaluation(null);
       }
     } catch (err) {
@@ -545,6 +547,7 @@ export default function SegmentContainerPage() {
     setEtResponses([]);
     setEtEvaluation(null);
     setEtLoaded(false);
+    setEtCurrentTask(0);
   }
 
   function etGoToOfficeHours(prompt) {
@@ -953,30 +956,28 @@ export default function SegmentContainerPage() {
             {/* Tasks — in progress, no evaluation yet */}
             {etStatus === 'in_progress' && !etEvaluation && !etLoading && etTasks.length > 0 && (
               <div>
-                <div style={{ marginBottom: 24 }}>
-                  <p style={{ fontSize: 13, color: '#9B8E82', marginBottom: 4 }}>
-                    {etTasks.length} task{etTasks.length !== 1 ? 's' : ''} — take your time
+                <div style={{ marginBottom: 20 }}>
+                  <p style={{ fontSize: 13, color: '#9B8E82' }}>
+                    Task {etCurrentTask + 1} of {etTasks.length}
                   </p>
                 </div>
 
-                {etTasks.map((task, i) => {
+                {(() => {
+                  const task = etTasks[etCurrentTask];
                   const taskText = typeof task === 'string' ? task : task.task || '';
                   return (
-                    <div key={i} style={{
+                    <div style={{
                       marginBottom: 24, background: '#ffffff',
                       border: '1px solid #E8E4DA', borderRadius: 12, padding: '20px 24px',
                     }}>
-                      <div style={{ fontSize: 13, color: '#9B8E82', marginBottom: 8 }}>
-                        Task {i + 1}
-                      </div>
                       <div style={{ fontSize: 15, color: '#1a1a1a', lineHeight: 1.6, marginBottom: 16 }}>
                         {taskText}
                       </div>
                       <textarea
-                        value={etResponses[i] || ''}
+                        value={etResponses[etCurrentTask] || ''}
                         onChange={(e) => {
                           const updated = [...etResponses];
-                          updated[i] = e.target.value;
+                          updated[etCurrentTask] = e.target.value;
                           setEtResponses(updated);
                         }}
                         placeholder="Explain your thinking..."
@@ -991,23 +992,53 @@ export default function SegmentContainerPage() {
                       />
                     </div>
                   );
-                })}
+                })()}
 
                 <div style={{ textAlign: 'center', marginTop: 8 }}>
-                  <button
-                    onClick={etSubmit}
-                    disabled={etResponses.some(r => !r.trim())}
-                    style={{
-                      padding: '12px 32px', borderRadius: 8,
-                      background: etResponses.every(r => r.trim()) ? '#8B6914' : '#E8E4DA',
-                      color: etResponses.every(r => r.trim()) ? '#fff' : '#9B8E82',
-                      border: 'none',
-                      cursor: etResponses.every(r => r.trim()) ? 'pointer' : 'default',
-                      fontSize: 15, fontWeight: 500,
-                    }}
-                  >
-                    Submit
-                  </button>
+                  {etCurrentTask < etTasks.length - 1 ? (
+                    <button
+                      onClick={() => setEtCurrentTask(i => i + 1)}
+                      disabled={!etResponses[etCurrentTask]?.trim()}
+                      style={{
+                        padding: '12px 32px', borderRadius: 8,
+                        background: etResponses[etCurrentTask]?.trim() ? '#8B6914' : '#E8E4DA',
+                        color: etResponses[etCurrentTask]?.trim() ? '#fff' : '#9B8E82',
+                        border: 'none',
+                        cursor: etResponses[etCurrentTask]?.trim() ? 'pointer' : 'default',
+                        fontSize: 15, fontWeight: 500,
+                      }}
+                    >
+                      Next Task →
+                    </button>
+                  ) : (
+                    <button
+                      onClick={etSubmit}
+                      disabled={etResponses.some(r => !r.trim())}
+                      style={{
+                        padding: '12px 32px', borderRadius: 8,
+                        background: etResponses.every(r => r.trim()) ? '#8B6914' : '#E8E4DA',
+                        color: etResponses.every(r => r.trim()) ? '#fff' : '#9B8E82',
+                        border: 'none',
+                        cursor: etResponses.every(r => r.trim()) ? 'pointer' : 'default',
+                        fontSize: 15, fontWeight: 500,
+                      }}
+                    >
+                      Submit All Responses
+                    </button>
+                  )}
+
+                  {etCurrentTask > 0 && (
+                    <button
+                      onClick={() => setEtCurrentTask(i => i - 1)}
+                      style={{
+                        marginLeft: 12, padding: '12px 20px', borderRadius: 8,
+                        background: '#ffffff', border: '1px solid #E8E4DA',
+                        color: '#1a1a1a', cursor: 'pointer', fontSize: 14,
+                      }}
+                    >
+                      ← Previous
+                    </button>
+                  )}
                 </div>
               </div>
             )}

@@ -52,13 +52,35 @@ export default function TopicDashboard() {
 
   const { topic, features } = dashboard;
 
-  // Filter Visual Overview out of the FeatureCard grid — it's replaced by the Topic Introduction section below.
-  const gridFeatures = features.filter((f) => f.key !== "visual_overview");
+  const gridFeatures = features;
 
   return (
     <div>
         <div style={{ position: 'fixed', top: 12, right: 16, background: '#8B6914', color: '#fff', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 4, zIndex: 9999, letterSpacing: '0.5px' }}>v2</div>
       <BackButton href={`/dashboard/${courseId}`} />
+      {/* v1/v2 toggle */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        marginBottom: 8, gap: 8,
+      }}>
+        <span style={{ fontSize: 12, color: '#9B8E82', fontWeight: 500 }}>v1</span>
+        <div
+          onClick={() => router.push(`/dashboard/${courseId}/${topicId}`)}
+          style={{
+            width: 44, height: 24, borderRadius: 12,
+            background: '#8B6914', cursor: 'pointer',
+            position: 'relative',
+          }}
+        >
+          <div style={{
+            width: 18, height: 18, borderRadius: '50%',
+            background: '#fff', border: '1px solid #8B6914',
+            position: 'absolute', top: 3, right: 3,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }} />
+        </div>
+        <span style={{ fontSize: 12, color: '#1a1a1a', fontWeight: 500 }}>v2</span>
+      </div>
       <div style={{ marginBottom: "32px" }}>
         <h1
           style={{
@@ -87,60 +109,6 @@ export default function TopicDashboard() {
           showTestPrompt={true} downstreamLabel="Generate all downstream ↓" accept=".txt,.md,.yaml,.yml"
           onRefresh={() => setRefreshKey(k => k + 1)} />
       )}
-
-      {/* ──────── Topic Introduction ──────── */}
-      <div style={{
-        background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 12,
-        padding: '28px 32px', marginBottom: 32,
-      }}>
-        <div style={{ fontSize: 13, color: '#8B6914', fontWeight: 500, letterSpacing: '0.5px', marginBottom: 16 }}>
-          TOPIC INTRODUCTION
-        </div>
-
-        {/* Layer 1: Children's Question */}
-        <div style={{
-          fontFamily: "var(--font-display), 'Lora', serif",
-          fontSize: 22, fontWeight: 600, fontStyle: 'italic',
-          color: '#1a1a1a', lineHeight: 1.4,
-          marginBottom: 20,
-        }}>
-          [Children's question TBD — e.g. "What's at the bottom of the ocean — and why was everyone wrong about it for centuries?"]
-        </div>
-
-        {/* Layer 2: What Knowing This Means */}
-        <div style={{
-          fontSize: 15, color: '#4a4a4a', lineHeight: 1.7,
-          marginBottom: 24, paddingBottom: 20,
-          borderBottom: '1px solid #E8E4DA',
-        }}>
-          [Capability statement TBD — e.g. "After this, you'll be able to explain why the deepest part of the ocean isn't in the middle — and what that tells you about how the entire ocean floor moves."]
-        </div>
-
-        {/* Layer 3: Segment Map */}
-        {segments.length === 0 ? (
-          <p style={{ color: '#6B6B6B', fontSize: 14 }}>
-            Segment map will appear here once segments are generated.
-          </p>
-        ) : (
-          segments.map((seg, i) => (
-            <div key={seg.number} style={{ marginBottom: i < segments.length - 1 ? 24 : 0 }}>
-              <div style={{
-                fontSize: 15, fontWeight: 600, color: '#1a1a1a', marginBottom: 8,
-              }}>
-                Segment {seg.number}: [Question TBD]
-              </div>
-              <div style={{ paddingLeft: 16 }}>
-                <div style={{ fontSize: 14, color: '#6B6B6B', lineHeight: 1.6 }}>
-                  • [Topic bullet TBD]
-                </div>
-                <div style={{ fontSize: 14, color: '#6B6B6B', lineHeight: 1.6 }}>
-                  • [Topic bullet TBD]
-                </div>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
 
       <div
         style={{

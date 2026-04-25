@@ -104,22 +104,27 @@ export default function TopicDashboard() {
         </span>
       </div>
 
-      <div style={{ textAlign: "center", marginTop: "1rem", marginBottom: "1rem" }}>
-        <button
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
+        marginTop: '1rem', marginBottom: '1rem', gap: 8,
+      }}>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>v1</span>
+        <div
           onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2`)}
           style={{
-            padding: "10px 24px",
-            borderRadius: 8,
-            background: "#2563eb",
-            border: "none",
-            color: "#fff",
-            fontSize: 14,
-            fontWeight: 500,
-            cursor: "pointer",
+            width: 44, height: 24, borderRadius: 12,
+            background: '#E8E4DA', cursor: 'pointer',
+            position: 'relative',
           }}
         >
-          Try new experience →
-        </button>
+          <div style={{
+            width: 18, height: 18, borderRadius: '50%',
+            background: '#fff', border: '1px solid #ccc',
+            position: 'absolute', top: 3, left: 3,
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }} />
+        </div>
+        <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>v2</span>
       </div>
     </div>
   );

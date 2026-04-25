@@ -26,7 +26,7 @@ export default function FeatureCard({ feature }) {
     }
   };
 
-  const label = feature.name;
+  const label = feature.key === 'visual_overview' ? 'Topic Introduction' : feature.name;
 
   return (
     <div
