@@ -18,6 +18,7 @@ export default function LecturesPage() {
   const [topicName, setTopicName] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [etStatuses, setEtStatuses] = useState({});
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -27,6 +28,14 @@ export default function LecturesPage() {
         const content = await apiFetch(`/api/topics/${topicId}/content`, {}, token);
         setTopicName(content.name || '');
         setSegments(content.lecture_segments || null);
+
+        // Fetch exit ticket statuses for gating
+        try {
+          const etData = await apiFetch(`/api/exit-ticket/${topicId}/status/all`, {}, token);
+          setEtStatuses(etData?.statuses || {});
+        } catch (err) {
+          console.error('Failed to load exit ticket statuses:', err);
+        }
       } catch (err) {
         console.error('Failed to load lectures:', err);
       }
@@ -58,6 +67,12 @@ export default function LecturesPage() {
   const totalDuration = segments
     ? segments.reduce((sum, seg) => sum + (seg.timestamps?.duration || 0), 0)
     : 0;
+
+  const isSegmentUnlocked = (segNumber) => {
+    if (segNumber === 1) return true; // First segment always unlocked
+    const prevStatus = etStatuses[segNumber - 1];
+    return prevStatus === 'pass';
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: '#fdfbf7', color: '#1a1a1a' }}>
@@ -110,6 +125,8 @@ export default function LecturesPage() {
               const title = seg.anchors?.[0] || `Segment ${seg.number}`;
               const duration = formatDuration(seg.timestamps?.duration);
 
+              const unlocked = isSegmentUnlocked(seg.number);
+
               return (
                 <div
                   key={seg.number}
@@ -118,12 +135,17 @@ export default function LecturesPage() {
                     border: '1px solid #E8E4DA',
                     borderRadius: 12,
                     padding: '20px 24px',
+                    cursor: unlocked ? 'pointer' : 'default',
+                    opacity: unlocked ? 1 : 0.5,
                   }}
                 >
                   {/* Lecture link */}
                   <div
-                    onClick={() => router.push(`/dashboard/${courseId}/${topicId}/v2/lectures/${seg.number}`)}
-                    style={{ cursor: 'pointer' }}
+                    onClick={() => {
+                      if (unlocked) {
+                        router.push(`/dashboard/${courseId}/${topicId}/v2/lectures/${seg.number}`);
+                      }
+                    }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <span style={{
@@ -144,6 +166,11 @@ export default function LecturesPage() {
                         {duration && (
                           <div style={{ fontSize: 12, color: '#6B6B6B', marginTop: 2 }}>
                             {duration}
+                          </div>
+                        )}
+                        {!unlocked && (
+                          <div style={{ fontSize: 12, color: '#C4972A', marginTop: 4 }}>
+                            🔒 Complete previous segment's Exit Ticket to unlock
                           </div>
                         )}
                       </div>
