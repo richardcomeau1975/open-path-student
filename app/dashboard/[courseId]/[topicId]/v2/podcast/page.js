@@ -544,7 +544,7 @@ export default function PodcastPage() {
             {currentAnchor && (
               <p ref={anchorTextRef} style={{
                 fontSize: 28, fontFamily: "'Lora', serif", fontWeight: 600,
-                color: '#f5f0e8', textAlign: 'center', lineHeight: 1.35, margin: 0,
+                color: "#1a1a1a", textAlign: 'center', lineHeight: 1.35, margin: 0,
               }}>
                 {currentAnchor}
               </p>

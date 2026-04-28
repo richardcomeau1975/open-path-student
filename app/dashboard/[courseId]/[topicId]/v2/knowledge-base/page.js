@@ -126,7 +126,7 @@ export default function KnowledgeBasePage() {
           padding: "24px 28px",
           fontFamily: "Inter, sans-serif",
           fontSize: "15px",
-          color: "#f5f0e8",
+          color: "#1a1a1a",
           lineHeight: 1.8,
           whiteSpace: "pre-wrap",
         }}

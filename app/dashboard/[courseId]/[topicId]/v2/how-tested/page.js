@@ -201,7 +201,7 @@ export default function HowTestedPage() {
               padding: "10px 20px",
               fontFamily: "Inter, sans-serif",
               fontSize: "14px",
-              color: "#f5f0e8",
+              color: "#1a1a1a",
               cursor: "pointer",
               marginBottom: "16px",
             }}
@@ -218,7 +218,7 @@ export default function HowTestedPage() {
                 padding: "24px",
                 fontFamily: "Inter, sans-serif",
                 fontSize: "15px",
-                color: "#f5f0e8",
+                color: "#1a1a1a",
                 lineHeight: 1.8,
                 whiteSpace: "pre-wrap",
               }}

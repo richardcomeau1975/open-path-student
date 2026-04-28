@@ -254,7 +254,7 @@ export default function NoteChartPage() {
                   fontFamily: "Inter, sans-serif",
                   fontSize: "15px",
                   fontWeight: 500,
-                  color: "#f5f0e8",
+                  color: "#1a1a1a",
                   marginBottom: "10px",
                 }}
               >
@@ -272,7 +272,7 @@ export default function NoteChartPage() {
                   borderRadius: "8px",
                   fontFamily: "Inter, sans-serif",
                   fontSize: "14px",
-                  color: "#f5f0e8",
+                  color: "#1a1a1a",
                   resize: "vertical",
                   outline: "none",
                   background: "#FDFBF7",
