@@ -226,7 +226,7 @@ export default function VisualOverviewPage() {
               fontFamily: "'Lora', serif",
               fontWeight: 600,
               fontStyle: "italic",
-              color: "#f5f0e8",
+              color: "#1a1a1a",
               lineHeight: 1.35,
               margin: 0,
             }}>
