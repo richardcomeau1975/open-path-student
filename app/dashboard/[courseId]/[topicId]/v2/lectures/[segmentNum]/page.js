@@ -38,23 +38,18 @@ export default function SegmentContainerPage() {
   const anchorRef = useRef(null);
 
   // ── Listen Q&A state ──
-  // ── Listen Q&A state (Gemini Live) ──
   const [qaInput, setQaInput] = useState('');
-  const [qaState, setQaState] = useState('idle'); // 'idle' | 'connecting' | 'listening' | 'speaking'
+  const [qaState, setQaState] = useState('idle'); // 'idle' | 'recording' | 'thinking' | 'speaking'
   const [qaResponse, setQaResponse] = useState('');
   const [qaCount, setQaCount] = useState(0);
   const MAX_QUESTIONS = 5;
-  const wsRef = useRef(null);
-  const audioContextRef = useRef(null);
-  const pcmBufferRef = useRef([]);
-  const isPlayingRef = useRef(false);
+  const audioQueueRef = useRef([]);
+  const isPlayingQaRef = useRef(false);
+  const qaAudioRef = useRef(null);
+  const fillerAudioRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
   const qaLoading = qaState !== 'idle';
-
-  const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
-  const GEMINI_WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
-  const GEMINI_MODEL = 'gemini-2.0-flash-live-001';
 
   // ── Office Hours state ──
   const [ohSession, setOhSession] = useState(null);
@@ -174,180 +169,139 @@ export default function SegmentContainerPage() {
   };
 
   // ══════════════════════════════════════════════════════════
-  // LISTEN: Gemini Live Q&A
+  // LISTEN: Q&A audio queue
   // ══════════════════════════════════════════════════════════
 
-  // PCM audio playback
-  function playPcmAudio(base64Pcm) {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 24000 });
+  const playNextQaChunk = useCallback(() => {
+    if (audioQueueRef.current.length === 0) {
+      isPlayingQaRef.current = false;
+      return;
     }
-    const ctx = audioContextRef.current;
-    const raw = atob(base64Pcm);
-    const bytes = new Uint8Array(raw.length);
-    for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
-    const pcm16 = new Int16Array(bytes.buffer);
-    const float32 = new Float32Array(pcm16.length);
-    for (let i = 0; i < pcm16.length; i++) float32[i] = pcm16[i] / 32768;
-    const buffer = ctx.createBuffer(1, float32.length, 24000);
-    buffer.getChannelData(0).set(float32);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-    source.start();
-  }
+    isPlayingQaRef.current = true;
+    const b64 = audioQueueRef.current.shift();
+    const audio = new Audio(`data:audio/mp3;base64,${b64}`);
+    qaAudioRef.current = audio;
+    audio.onended = () => playNextQaChunk();
+    audio.onerror = () => playNextQaChunk();
+    audio.play().catch(() => playNextQaChunk());
+  }, []);
 
-  // Build system instruction from segment context
-  function buildQaSystemInstruction() {
-    const scriptContext = seg?.script || '';
-    const assetContext = seg?.content || '';
-    return (
-      "You are the Expert from a lecture the student is currently listening to. " +
-      "The student just paused to ask you a question. Answer naturally, warmly, and directly — " +
-      "as if you're the same person who was just speaking in the lecture. " +
-      "Keep answers to 3-4 sentences MAX. Be direct. One clear point per answer. " +
-      "Always begin your response with a very brief natural interruption acknowledgment — as if someone just raised their hand while you were talking. Something like 'Oh — hold on, there's a question...' or 'Yeah, let me pause here — what's up?' or 'Sure, let's stop for a sec.' Just a few words that acknowledge you were mid-lecture and someone interrupted. Then answer their question directly. " +
-      "NEVER say: learning asset, system, material provided, context, or anything that breaks the illusion. " +
-      "NEVER refuse to answer. Always give the student something useful.\n\n" +
-      (assetContext ? `WHAT YOU KNOW:\n${assetContext.slice(0, 4000)}\n\n` : '') +
-      (scriptContext ? `WHAT YOU WERE JUST SAYING:\n${scriptContext.slice(0, 2000)}` : '')
-    );
-  }
+  const enqueueQaAudio = useCallback((b64) => {
+    audioQueueRef.current.push(b64);
+    if (!isPlayingQaRef.current) {
+      if (fillerAudioRef.current) {
+        try { fillerAudioRef.current.pause(); } catch {}
+        fillerAudioRef.current = null;
+      }
+      setQaState('speaking');
+      playNextQaChunk();
+    }
+  }, [playNextQaChunk]);
 
-  // Open WebSocket to Gemini Live
-  function connectGeminiLive() {
-    return new Promise((resolve, reject) => {
-      const ws = new WebSocket(GEMINI_WS_URL);
-      wsRef.current = ws;
+  const playRandomFiller = useCallback(async () => {
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/api/voice/podcast/filler-urls`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      const fillers = data.fillers || [];
+      if (fillers.length === 0) return;
+      const filler = fillers[Math.floor(Math.random() * fillers.length)];
+      return new Promise((resolve) => {
+        const audio = new Audio(filler.url);
+        fillerAudioRef.current = audio;
+        audio.onended = () => { fillerAudioRef.current = null; resolve(); };
+        audio.onerror = () => { fillerAudioRef.current = null; resolve(); };
+        audio.play().catch(() => resolve());
+      });
+    } catch (e) {
+      console.error('Filler playback failed:', e);
+    }
+  }, [getToken]);
 
-      ws.onopen = () => {
-        // Send setup config
-        ws.send(JSON.stringify({
-          setup: {
-            model: `models/${GEMINI_MODEL}`,
-            generationConfig: {
-              responseModalities: ['AUDIO'],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: {
-                    voiceName: 'Kore',
-                  },
-                },
-              },
-            },
-            systemInstruction: {
-              parts: [{ text: buildQaSystemInstruction() }],
-            },
-          },
-        }));
-      };
+  const submitQuestionText = useCallback(async (question) => {
+    const q = question.trim();
+    if (!q) return;
 
-      ws.onmessage = (event) => {
-        const msg = JSON.parse(event.data);
-
-        // Setup complete
-        if (msg.setupComplete) {
-          resolve(ws);
-          return;
-        }
-
-        // Audio response
-        if (msg.serverContent?.modelTurn?.parts) {
-          for (const part of msg.serverContent.modelTurn.parts) {
-            if (part.inlineData?.data) {
-              playPcmAudio(part.inlineData.data);
-              setQaState('speaking');
-            }
-          }
-        }
-
-        // Text transcription of the response
-        if (msg.serverContent?.outputTranscription?.text) {
-          setQaResponse(prev => prev + msg.serverContent.outputTranscription.text);
-        }
-
-        // Turn complete
-        if (msg.serverContent?.turnComplete) {
-          setQaState('idle');
-        }
-      };
-
-      ws.onerror = (err) => {
-        console.error('Gemini Live WS error:', err);
-        setQaState('idle');
-        reject(err);
-      };
-
-      ws.onclose = () => {
-        wsRef.current = null;
-      };
-
-      // Timeout
-      setTimeout(() => {
-        if (ws.readyState !== WebSocket.OPEN) {
-          ws.close();
-          reject(new Error('WebSocket timeout'));
-        }
-      }, 10000);
-    });
-  }
-
-  // Send text question
-  const sendQuestion = useCallback(async () => {
-    const q = qaInput.trim();
-    if (!q || qaLoading || qaCount >= MAX_QUESTIONS) return;
-
-    // Pause lecture audio
     if (audioRef.current && playing) {
       audioRef.current.pause();
       setPlaying(false);
     }
 
-    setQaState('connecting');
+    setQaState('thinking');
     setQaInput('');
     setQaResponse('');
     setQaCount(c => c + 1);
 
+    playRandomFiller();
+
+    const token = await getToken();
+
     try {
-      const ws = wsRef.current?.readyState === WebSocket.OPEN
-        ? wsRef.current
-        : await connectGeminiLive();
+      const res = await fetch(`${API}/api/voice/podcast/${topicId}/ask-stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          text: q,
+          pausedAt: currentTime,
+          history: [],
+          segment_number: parseInt(segmentNum, 10),
+        }),
+      });
 
-      // Send text message
-      ws.send(JSON.stringify({
-        clientContent: {
-          turns: [{ role: 'user', parts: [{ text: q }] }],
-          turnComplete: true,
-        },
-      }));
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullAnswer = '';
 
-      setQaState('speaking');
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          try {
+            const event = JSON.parse(line.slice(6));
+            if (event.type === 'text_chunk') {
+              fullAnswer += event.text + ' ';
+              setQaResponse(fullAnswer);
+            } else if (event.type === 'audio_chunk') {
+              enqueueQaAudio(event.audio);
+            } else if (event.type === 'answer') {
+              fullAnswer = event.text;
+              setQaResponse(fullAnswer);
+            }
+          } catch {}
+        }
+      }
     } catch (err) {
       console.error('Q&A failed:', err);
-      setQaResponse('Sorry, something went wrong connecting to the voice assistant.');
+      setQaResponse('Sorry, something went wrong.');
+    }
+
+    if (!isPlayingQaRef.current && audioQueueRef.current.length === 0) {
       setQaState('idle');
     }
-  }, [qaInput, qaLoading, qaCount, playing, seg]);
+  }, [playing, currentTime, topicId, segmentNum, getToken, enqueueQaAudio, playRandomFiller]);
 
-  // Voice recording
+  const sendQuestion = useCallback(() => {
+    if (qaLoading || qaCount >= MAX_QUESTIONS) return;
+    submitQuestionText(qaInput);
+  }, [qaInput, qaLoading, qaCount, submitQuestionText]);
+
   const startRecording = useCallback(async () => {
     if (qaLoading || qaCount >= MAX_QUESTIONS) return;
-    if (audioRef.current && playing) {
+    if (audioRef.current) {
       audioRef.current.pause();
       setPlaying(false);
     }
-
     try {
-      // Ensure WebSocket is connected
-      setQaState('connecting');
-      const ws = wsRef.current?.readyState === WebSocket.OPEN
-        ? wsRef.current
-        : await connectGeminiLive();
-
-      // Get mic access
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: { sampleRate: 16000, channelCount: 1 } });
-
-      // Use MediaRecorder to capture audio, then send as base64
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
@@ -358,33 +312,35 @@ export default function SegmentContainerPage() {
 
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach(t => t.stop());
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const arrayBuffer = await blob.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-
-        setQaResponse('');
-        setQaCount(c => c + 1);
-
-        // Send audio to Gemini Live
-        ws.send(JSON.stringify({
-          realtimeInput: {
-            mediaChunks: [{
-              mimeType: 'audio/webm',
-              data: base64,
-            }],
-          },
-        }));
-
-        setQaState('speaking');
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        setQaState('thinking');
+        try {
+          const arrayBuffer = await audioBlob.arrayBuffer();
+          const token = await getToken();
+          const sttResponse = await fetch(`${API}/api/voice/transcribe`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: new Uint8Array(arrayBuffer),
+          });
+          const sttData = await sttResponse.json();
+          if (sttData.transcript?.trim()) {
+            await submitQuestionText(sttData.transcript.trim());
+          } else {
+            setQaState('idle');
+          }
+        } catch (err) {
+          console.error('Transcribe failed:', err);
+          setQaState('idle');
+        }
       };
 
       mediaRecorder.start();
-      setQaState('listening');
+      setQaState('recording');
     } catch (err) {
-      console.error('Recording failed:', err);
+      console.error('Mic access denied:', err);
       setQaState('idle');
     }
-  }, [qaLoading, qaCount, playing, seg]);
+  }, [qaLoading, qaCount, getToken, submitQuestionText]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
@@ -392,19 +348,17 @@ export default function SegmentContainerPage() {
     }
   }, []);
 
-  // Clean up WebSocket on unmount
   useEffect(() => {
-    return () => {
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-        audioContextRef.current = null;
-      }
-    };
-  }, []);
+    if (qaState === 'speaking') {
+      const check = setInterval(() => {
+        if (!isPlayingQaRef.current && audioQueueRef.current.length === 0) {
+          setQaState('idle');
+          clearInterval(check);
+        }
+      }, 300);
+      return () => clearInterval(check);
+    }
+  }, [qaState]);
 
   // ══════════════════════════════════════════════════════════
   // OFFICE HOURS: session + streaming
@@ -811,8 +765,10 @@ export default function SegmentContainerPage() {
                   {qaState === 'speaking' && (
                     <button
                       onClick={() => {
-                        if (wsRef.current) { wsRef.current.close(); wsRef.current = null; }
-                        if (audioContextRef.current) { audioContextRef.current.close(); audioContextRef.current = null; }
+                        if (qaAudioRef.current) { qaAudioRef.current.pause(); qaAudioRef.current = null; }
+                        if (fillerAudioRef.current) { fillerAudioRef.current.pause(); fillerAudioRef.current = null; }
+                        audioQueueRef.current = [];
+                        isPlayingQaRef.current = false;
                         setQaState('idle');
                       }}
                       style={{
@@ -850,8 +806,8 @@ export default function SegmentContainerPage() {
                       placeholder={
                         qaCount >= MAX_QUESTIONS ? 'Question limit reached' :
                         qaState === 'recording' ? 'Listening...' :
-                        qaState === 'connecting' ? 'Connecting...' :
-                        qaState === 'listening' ? 'Listening...' :
+                        qaState === 'recording' ? 'Listening...' :
+                        qaState === 'thinking' ? 'Thinking...' :
                         qaState === 'speaking' ? 'Responding...' :
                         'Ask about what you just heard...'
                       }
