@@ -54,7 +54,7 @@ export default function SegmentContainerPage() {
 
   const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || '';
   const GEMINI_WS_URL = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${GEMINI_API_KEY}`;
-  const GEMINI_MODEL = 'gemini-3.1-flash-live-preview';
+  const GEMINI_MODEL = 'gemini-2.0-flash-exp';
 
   // ── Office Hours state ──
   const [ohSession, setOhSession] = useState(null);
