@@ -68,6 +68,11 @@ export default function SegmentContainerPage() {
   const [etLoading, setEtLoading] = useState(false);
   const [etLoaded, setEtLoaded] = useState(false);
   const [etCurrentTask, setEtCurrentTask] = useState(0);
+  const [etBlocks, setEtBlocks] = useState([]);
+  const etAudioRef = useRef(null);
+  const [etScenePlaying, setEtScenePlaying] = useState(false);
+  const [etSceneTime, setEtSceneTime] = useState(0);
+  const [etSceneDuration, setEtSceneDuration] = useState(0);
 
   // ── Notes state ──
   const [notesQuestions, setNotesQuestions] = useState(null);
@@ -472,6 +477,14 @@ export default function SegmentContainerPage() {
         );
         const data = await res.json();
         setEtStatus(data.status);
+        try {
+          const sceneRes = await fetch(
+            `${API}/api/exit-ticket/${topicId}/scene?segment_number=${segmentNum}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const sceneData = await sceneRes.json();
+          if (sceneData.exists) setEtBlocks(sceneData.blocks || []);
+        } catch (err) { /* scene optional */ }
         if (data.result) {
           setEtTasks(data.result.tasks || []);
           if (data.result.responses) {
@@ -925,7 +938,9 @@ export default function SegmentContainerPage() {
                   Ready to show what you know?
                 </p>
                 <p style={{ fontSize: 14, color: '#6B6B6B', marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
-                  The exit ticket checks whether you can use the material from this segment — not just remember it.
+                  {etBlocks.length > 0
+                    ? "You'll listen to a short conversation, then answer questions about it while it's fresh — then the next conversation, and so on."
+                    : 'The exit ticket checks whether you can use the material from this segment — not just remember it.'}
                 </p>
                 <button
                   onClick={etStart}
@@ -949,6 +964,68 @@ export default function SegmentContainerPage() {
                 </p>
               </div>
             )}
+
+            {/* Conversation player — follows the current question's conversation */}
+            {etBlocks.length > 0 && etStatus === 'in_progress' && !etEvaluation && !etLoading && etTasks.length > 0 && (() => {
+              const curTask = etTasks[etCurrentTask];
+              const blockIdx = (curTask && typeof curTask === 'object' && Number.isInteger(curTask.scene)) ? curTask.scene : 0;
+              const block = etBlocks[blockIdx];
+              if (!block) return null;
+              return (
+                <div style={{
+                  background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 12,
+                  padding: '16px 20px', marginBottom: 20,
+                  display: 'flex', alignItems: 'center', gap: 14,
+                }}>
+                  <audio
+                    ref={etAudioRef}
+                    src={block.audio_url}
+                    onTimeUpdate={() => setEtSceneTime(etAudioRef.current?.currentTime || 0)}
+                    onLoadedMetadata={() => setEtSceneDuration(etAudioRef.current?.duration || 0)}
+                    onEnded={() => setEtScenePlaying(false)}
+                    onPause={() => setEtScenePlaying(false)}
+                    onPlay={() => setEtScenePlaying(true)}
+                    preload="auto"
+                  />
+                  <button
+                    onClick={() => {
+                      if (!etAudioRef.current) return;
+                      if (etScenePlaying) etAudioRef.current.pause();
+                      else etAudioRef.current.play();
+                    }}
+                    style={{
+                      width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+                      background: '#8B6914', border: 'none', color: '#fff',
+                      cursor: 'pointer', fontSize: 16,
+                    }}
+                  >
+                    {etScenePlaying ? '⏸' : '▶'}
+                  </button>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: '#1a1a1a', marginBottom: 6 }}>
+                      {etBlocks.length > 1 ? `Conversation ${blockIdx + 1} of ${etBlocks.length}` : 'Listen to the interaction'}
+                    </div>
+                    <div
+                      onClick={(e) => {
+                        if (!etAudioRef.current || !etSceneDuration) return;
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        const frac = (e.clientX - rect.left) / rect.width;
+                        etAudioRef.current.currentTime = frac * etSceneDuration;
+                      }}
+                      style={{ height: 6, borderRadius: 3, background: '#E8E4DA', cursor: 'pointer' }}
+                    >
+                      <div style={{
+                        height: 6, borderRadius: 3, background: '#8B6914',
+                        width: etSceneDuration ? `${(etSceneTime / etSceneDuration) * 100}%` : '0%',
+                      }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: '#9B8E82', marginTop: 4 }}>
+                      Replay as often as you like — the questions below are about this conversation.
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Tasks — in progress, no evaluation yet */}
             {etStatus === 'in_progress' && !etEvaluation && !etLoading && etTasks.length > 0 && (
