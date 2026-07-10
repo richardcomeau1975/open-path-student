@@ -96,8 +96,8 @@ export default function AdminToolbar({
       try {
         const prog = await authFetch(`/api/topics/${topicId}/admin/progress`);
         setProgress(prog.active ? prog : null);
-        // If progress shows done or failed, stop polling
-        if (prog.active && (prog.status === "done" || prog.status === "failed")) {
+        // Run finished (endpoint reports active=false once status is done/failed)
+        if (!prog.active || prog.status === "done" || prog.status === "failed") {
           stopPolling();
           setLoading(null);
           setProgress(null);
@@ -124,6 +124,20 @@ export default function AdminToolbar({
   useEffect(() => {
     return () => stopPolling();
   }, []);
+
+  // On mount: if a run is already live for this topic (started from another
+  // toolbar, tab, or before a reload), show it and resume polling
+  useEffect(() => {
+    (async () => {
+      try {
+        const prog = await authFetch(`/api/topics/${topicId}/admin/progress`);
+        if (prog.active) {
+          setProgress(prog);
+          startPolling();
+        }
+      } catch (e) { /* ignore */ }
+    })();
+  }, [topicId]);
 
   async function doAction(actionName, fn) {
     setLoading(actionName);
