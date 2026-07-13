@@ -661,6 +661,21 @@ export default function SegmentContainerPage() {
                   </span>
                 </div>
 
+                {/* Download */}
+                {seg?.audio && (
+                  <a
+                    href={seg.audio}
+                    download={`lecture-segment-${segmentNum}.wav`}
+                    style={{
+                      display: 'inline-block', marginTop: 10, padding: '6px 14px',
+                      borderRadius: 8, border: '1px solid #E8E4DA', background: '#fff',
+                      color: '#6B6B6B', fontSize: 13, textDecoration: 'none',
+                    }}
+                  >
+                    ↓ Download audio
+                  </a>
+                )}
+
                 {/* Q&A section */}
                 <div style={{ borderTop: '1px solid #E8E4DA', paddingTop: 16 }}>
                   {qaResponse && (

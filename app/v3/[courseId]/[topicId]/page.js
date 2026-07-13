@@ -92,6 +92,18 @@ export default function V3Topic() {
         {/* Topic-level tools */}
         <div style={{ marginTop: 32, display: 'flex', gap: 12 }}>
           <div
+            onClick={() => router.push(`/v3/${courseId}/${topicId}/howtested`)}
+            style={{
+              flex: 1, background: '#fff', border: '1px solid #E8E4DA', borderRadius: 12,
+              padding: '18px 22px', cursor: 'pointer',
+            }}
+          >
+            <div style={{ fontSize: 15, fontWeight: 600 }}>How You're Tested</div>
+            <div style={{ fontSize: 13, color: '#6B6B6B', marginTop: 4 }}>
+              Upload a real test so practice matches the real thing.
+            </div>
+          </div>
+          <div
             onClick={() => router.push(`/v3/${courseId}/${topicId}/testme`)}
             style={{
               flex: 1, background: '#fff', border: '1px solid #E8E4DA', borderRadius: 12,
