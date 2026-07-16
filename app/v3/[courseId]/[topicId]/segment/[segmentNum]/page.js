@@ -11,8 +11,9 @@ const API = process.env.NEXT_PUBLIC_API_URL || '';
 
 const TABS = [
   { id: 'listen', label: 'Listen' },
-  { id: 'office-hours', label: 'Office Hours' },
-  { id: 'exit-ticket', label: 'Exit Ticket' },
+  { id: 'office-hours', label: 'Walk It Through' },
+  { id: 'exit-ticket', label: 'Prove It' },
+  { id: 'notes', label: 'Make My Notes' },
 ];
 
 export default function SegmentContainerPage() {
@@ -71,6 +72,16 @@ export default function SegmentContainerPage() {
   const [etScenePlaying, setEtScenePlaying] = useState(false);
   const [etSceneTime, setEtSceneTime] = useState(0);
   const [etSceneDuration, setEtSceneDuration] = useState(0);
+
+  // ── Make My Notes state ──
+  const [nSessionId, setNSessionId] = useState(null);
+  const [nCurrent, setNCurrent] = useState(null); // {action, text}
+  const [nNotes, setNNotes] = useState([]);       // [{q, note}]
+  const [nInput, setNInput] = useState('');
+  const [nComplete, setNComplete] = useState(false);
+  const [nLoading, setNLoading] = useState(false);
+  const [nStarted, setNStarted] = useState(false);
+  const nLastQuestionRef = useRef('');
 
   // ══════════════════════════════════════════════════════════
   // LOAD CONTENT
@@ -545,6 +556,73 @@ export default function SegmentContainerPage() {
   function etGoToOfficeHours(prompt) {
     setOhInput(prompt);
     setActiveTab('office-hours');
+  }
+
+  // ══════════════════════════════════════════════════════════
+  // MAKE MY NOTES: start lazily, answer loop
+  // ══════════════════════════════════════════════════════════
+
+  useEffect(() => {
+    if (activeTab !== 'notes' || nStarted || !isLoaded) return;
+    setNStarted(true);
+    (async () => {
+      setNLoading(true);
+      try {
+        const token = await getToken();
+        const res = await fetch(`${API}/api/notes/${topicId}/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ segment_number: parseInt(segmentNum, 10) }),
+        });
+        const data = await res.json();
+        if (data.session_id) {
+          setNSessionId(data.session_id);
+          setNCurrent({ action: data.action, text: data.text });
+          if (data.action === 'question') nLastQuestionRef.current = data.text;
+        }
+      } catch (err) {
+        console.error('Failed to start notes session:', err);
+      }
+      setNLoading(false);
+    })();
+  }, [activeTab, isLoaded]);
+
+  async function nSubmit() {
+    const answer = nInput.trim();
+    if (!answer || nLoading || !nSessionId) return;
+    setNLoading(true);
+    setNInput('');
+    try {
+      const token = await getToken();
+      const res = await fetch(`${API}/api/notes/${topicId}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ session_id: nSessionId, answer }),
+      });
+      const data = await res.json();
+      if (data.action === 'question' || data.action === 'pushback') {
+        setNCurrent({ action: data.action, text: data.text });
+        if (data.action === 'question') nLastQuestionRef.current = data.text;
+      } else if (data.action === 'consolidate') {
+        if (data.note) setNNotes(prev => [...prev, { q: nLastQuestionRef.current, note: data.note }]);
+        if (data.next_question) {
+          nLastQuestionRef.current = data.next_question;
+          setNCurrent({ action: 'question', text: data.next_question });
+        } else if (data.note) {
+          setNComplete(true);
+          setNCurrent({ action: 'complete', text: data.text });
+        } else {
+          // Intermediate consolidate (e.g. "now tighten it") — no note yet, keep the question live
+          setNCurrent({ action: 'pushback', text: data.text });
+        }
+      } else if (data.action === 'complete') {
+        setNComplete(true);
+        setNCurrent({ action: 'complete', text: data.text });
+      }
+    } catch (err) {
+      console.error('Notes message failed:', err);
+    }
+    setNLoading(false);
   }
 
   // ══════════════════════════════════════════════════════════
@@ -1135,6 +1213,90 @@ export default function SegmentContainerPage() {
                       Next Segment →
                     </button>
                   )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════════════════════════════════════════════
+            TAB: Make My Notes
+            ════════════════════════════════════════════════════════ */}
+        {activeTab === 'notes' && (
+          <div>
+            {nLoading && !nCurrent && (
+              <p style={{ color: '#9B8E82', fontSize: 14, padding: '24px 0' }}>Getting your first question ready…</p>
+            )}
+
+            {nCurrent && nCurrent.action !== 'complete' && (
+              <div style={{
+                background: '#ffffff', borderRadius: 12, padding: '20px 24px', marginBottom: 16,
+                border: '1px solid #E8E4DA',
+                borderLeft: nCurrent.action === 'pushback' ? '3px solid #C4972A' : '1px solid #E8E4DA',
+              }}>
+                <div style={{ fontSize: 15, color: '#1a1a1a', lineHeight: 1.6 }}>{nCurrent.text}</div>
+              </div>
+            )}
+
+            {!nComplete && nSessionId && (
+              <div>
+                <textarea
+                  value={nInput}
+                  onChange={(e) => setNInput(e.target.value)}
+                  placeholder={nLoading ? 'Thinking…' : 'Write your answer in your own words…'}
+                  disabled={nLoading}
+                  rows={4}
+                  style={{
+                    width: '100%', padding: '12px 14px', borderRadius: 8,
+                    border: '1px solid #E8E4DA', background: '#fdfbf7',
+                    color: '#1a1a1a', fontSize: 14, lineHeight: 1.6,
+                    outline: 'none', resize: 'vertical', fontFamily: 'Inter, sans-serif',
+                  }}
+                />
+                <div style={{ textAlign: 'right', marginTop: 8 }}>
+                  <button
+                    onClick={nSubmit}
+                    disabled={!nInput.trim() || nLoading}
+                    style={{
+                      padding: '10px 24px', borderRadius: 8,
+                      background: nInput.trim() && !nLoading ? '#8B6914' : '#E8E4DA',
+                      color: nInput.trim() && !nLoading ? '#fff' : '#9B8E82',
+                      border: 'none', cursor: nInput.trim() && !nLoading ? 'pointer' : 'default',
+                      fontSize: 14, fontWeight: 500,
+                    }}
+                  >
+                    {nLoading ? '…' : 'Send'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {nComplete && (
+              <div style={{
+                background: '#f0f7f2', border: '1px solid #4A7C59', borderRadius: 12,
+                padding: '20px 24px', marginBottom: 16,
+              }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: '#4A7C59', marginBottom: 6 }}>
+                  Note chart complete — {nNotes.length} note{nNotes.length !== 1 ? 's' : ''}, every line yours.
+                </div>
+                <a href={`/v3/${courseId}/${topicId}/notes`} style={{ fontSize: 14, color: '#8B6914', textDecoration: 'none', fontWeight: 500 }}>
+                  See your full note chart →
+                </a>
+              </div>
+            )}
+
+            {nNotes.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                <div style={{ fontSize: 13, color: '#9B8E82', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 10 }}>
+                  Your notes
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {nNotes.map((n, i) => (
+                    <div key={i} style={{ background: '#ffffff', border: '1px solid #E8E4DA', borderRadius: 12, padding: '14px 18px' }}>
+                      <div style={{ fontSize: 12, color: '#9B8E82', marginBottom: 6 }}>{n.q}</div>
+                      <div style={{ fontSize: 14, color: '#1a1a1a', lineHeight: 1.6 }}>{n.note}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
