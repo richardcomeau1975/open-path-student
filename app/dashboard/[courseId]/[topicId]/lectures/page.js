@@ -18,6 +18,7 @@ export default function LecturesPage() {
   const [topicName, setTopicName] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [openSeg, setOpenSeg] = useState(null);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -106,12 +107,19 @@ export default function LecturesPage() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {segments.map((seg) => {
-              const title = seg.anchors?.[0] || `Segment ${seg.number}`;
+              // Title comes from the learning asset via the manifest. Never from
+              // the script's [ANCHOR] text — that's on-screen playback copy.
+              const title = seg.title || null;
+              const questions = seg.questions?.length ? seg.questions : null;
+              const hasDetail = !!(questions || seg.takeaway);
+              const isOpen = openSeg === seg.number;
               const duration = formatDuration(seg.timestamps?.duration);
 
               return (
                 <div
                   key={seg.number}
+                  onMouseEnter={() => hasDetail && setOpenSeg(seg.number)}
+                  onMouseLeave={() => setOpenSeg(null)}
                   style={{
                     background: '#ffffff',
                     border: '1px solid #E8E4DA',
@@ -134,15 +142,50 @@ export default function LecturesPage() {
                         <div style={{ fontSize: 15, fontWeight: 600, color: '#1a1a1a' }}>
                           Lecture {seg.number}
                         </div>
-                        <div style={{
-                          fontSize: 13, color: '#6B6B6B', marginTop: 2,
-                          maxWidth: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                        }}>
-                          {title}
-                        </div>
+                        {title && (
+                          <div style={{
+                            fontSize: 13, color: '#6B6B6B', marginTop: 2, maxWidth: 500,
+                            overflow: 'hidden', display: '-webkit-box',
+                            WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+                          }}>
+                            {title}
+                          </div>
+                        )}
                         {duration && (
                           <div style={{ fontSize: 12, color: '#6B6B6B', marginTop: 2 }}>
                             {duration}
+                          </div>
+                        )}
+                        {hasDetail && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenSeg(isOpen ? null : seg.number);
+                            }}
+                            style={{
+                              fontSize: 12, color: '#9B8E82', marginTop: 6,
+                              cursor: 'pointer', userSelect: 'none',
+                            }}
+                          >
+                            {questions
+                              ? `${questions.length} question${questions.length === 1 ? '' : 's'}`
+                              : "What you'll be able to explain"} {isOpen ? '⌃' : '⌄'}
+                          </div>
+                        )}
+                        {isOpen && hasDetail && (
+                          <div style={{
+                            marginTop: 8, maxWidth: 500, fontSize: 13,
+                            color: '#4A4A4A', lineHeight: 1.5,
+                          }}>
+                            {questions ? (
+                              <ul style={{ margin: 0, paddingLeft: 18 }}>
+                                {questions.map((q, i) => (
+                                  <li key={i} style={{ marginBottom: 4 }}>{q}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p style={{ margin: 0 }}>{seg.takeaway}</p>
+                            )}
                           </div>
                         )}
                       </div>
